@@ -109,21 +109,21 @@ var entrace_arr = {enter:[{r:18, c:6},{r:19, c:6}], //people enter area
 					queue:[{r:18, c:2},{r:18, c:1},{r:18, c:0},{r:19, c:0},{r:19, c:1},{r:19, c:2},{r:19, c:3},{r:19, c:4}],  //people queue area
 					exit:[{r:18, c:6},{r:19, c:6}]};  //people exit area
 
-var gameScore = 50000; //game score per person
-var gameScoreDisplay = '     	  Rp[NUMBER] / Rp[TARGET]'; //game score display
+var gameScore = 400; //game score per person
+var gameScoreDisplay = '      	   Rp[NUMBER] / Rp[TARGET]'; //game score display
 									
 var gameSetting = {moveSpeed:.2, //movement speed
-				peopleTimer:15, //human enter restaurant timer
-				menuTimer:5, //menu timer
-				orderTimer:.2, //order timer
-				cookTimer:10, //cooking timer
-				dineTimer:17, //dine timer
-				paymentTimer:.2}; //pay timer
+				peopleTimer:15, //human enter restaurant timer default 15
+				menuTimer:5, //menu timer default 5
+				orderTimer:.2, //order timer default 2
+				cookTimer:11, //cooking timer default 10
+				dineTimer:18, //dine timer default 18
+				paymentTimer:.2}; //pay timer default 2
 
 var level_setting = {dailyPeopleTimer:3, //daily increase (human enter restaurant)
 					dailySpeedIncrease:.02, //daily increase (movement speed)
 					dayTimer:100000, //daily timer
-					scoreTarget:[1000,5000,8000,16000,23000,28000,35000,42000,49000,60000,68000,74000,80000,86000,91000,99000,106000,112000,120000,126000,130000,137000,145000], //daily score target
+					scoreTarget:[1000,5000,8000,16000,23000,28000,35000,42000,49000,60000,68000,74000,80000,86000,91000,99000,106000,112000,120000,126000,130000,137000,145000,155000,165000,170000,180000,195000,210000,250000], //daily score target
 					queueTotal_arr:[2,2,1,4,2,1,2,2,2,4,2,4,1,4]}; //total queue array list
 	
 
