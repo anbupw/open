@@ -1746,15 +1746,15 @@ function share(action){
 	var loc = location.href
 	loc = loc.substring(0, loc.lastIndexOf("/") + 1);
 	
-	var title = '';
-	var text = '';
+	var title = 'Open Restorant Game';
+	var text = 'Hight Score';
 	
 	title = shareTitle.replace("[SCORE]", addCommas(playerData.score));
 	title = title.replace("[DAY]", playerData.day);
 	
 	text = shareMessage.replace("[SCORE]", addCommas(playerData.score));
 	text = text.replace("[DAY]", playerData.day);
-	var shareurl = '';
+	var shareurl = 'https://anbupw.github.io/open/';
 	
 	if( action == 'twitter' ) {
 		shareurl = 'https://twitter.com/intent/tweet?url='+loc+'&text='+text;
