@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:fb="https://www.facebook.com/2008/fbml">
     <head>
     	<?php
-			$title = isset($_GET['title']) ? $_GET['title'] : '';
-			$desc = isset($_GET['desc']) ? $_GET['desc'] : '';
-			$thumb = isset($_GET['thumb']) ? $_GET['thumb'] : '';
+			$title = isset($_GET['title']) ? $_GET['title'] : 'Open Resto';
+			$desc = isset($_GET['desc']) ? $_GET['desc'] : 'Open Restaurant adalah permainan HTML5 di mana Anda harus menjalankan restoran dan membawa keterampilan manajemen Anda ke setiap restoran! Bertahan dari target harian untuk mendapatkan skor tertinggi';
+			$thumb = isset($_GET['thumb']) ? $_GET['thumb'] : 'https://anbupw.github.io/open/share.jpg';
 			$width = isset($_GET['width']) ? $_GET['width'] : '590';
 			$height = isset($_GET['height']) ? $_GET['height'] : '300';
-			$url = isset($_GET['url']) ? $_GET['url'] : 'localhost/game';
+			$url = isset($_GET['url']) ? $_GET['url'] : 'https://anbupw.github.io/open';
 		?>
     
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
