@@ -129,8 +129,8 @@ var level_setting = {dailyPeopleTimer:3, //daily increase (human enter restauran
 
 //Social share, [SCORE] will replace with game score
 var shareEnable = true; //toggle share
-var shareTitle = 'Skor tertinggi saya pada OpenRestoran: [SCORE] secara keseluruhan [DAY] Hari';//social share score title
-var shareMessage = 'Skor tertinggi baru saya di Game Open Restaurant: [SCORE] secara keseluruhan [DAY] Hari. Coba sekarang!'; //social share score message
+var shareTitle = 'Skor tertinggi di Game Open Restaurant adalah [SCORE] total [DAY] Hari';//social share score title
+var shareMessage = '[SCORE] dalam [DAY] hari adalah skor tertinggi baru saya di Open Restaurant Game! Cobalah sekarang!'; //social share score message
 
 /*!
  *
@@ -411,14 +411,14 @@ function resetGame(){
 }
 
 function saveGame(score){
-	$.ajax({
+	/*\\$.ajax({
       type: "POST",
       url: 'saveResults.php',
       data: {score:score},
       success: function (result) {
           console.log(result);
       }
-    });
+    });*/
 }
 
 
