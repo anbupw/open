@@ -1743,8 +1743,7 @@ function toggleConfirm(con){
 function share(action){
 	gtag('event','click',{'event_category':'share','event_label':action});
 	
-	// var loc = location.href
-	var loc = window.parent.location;
+	var loc = location.href
 	loc = loc.substring(0, loc.lastIndexOf("/") + 1);
 	
 	var title = '';
