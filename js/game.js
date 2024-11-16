@@ -129,8 +129,8 @@ var level_setting = {dailyPeopleTimer:3, //daily increase (human enter restauran
 
 //Social share, [SCORE] will replace with game score
 var shareEnable = true; //toggle share
-var shareTitle = 'Skor tertinggi pada Game Open Restoran adalah Rp [SCORE] secara keseluruhan [DAY] Hari';//social share score title
-var shareMessage = 'Rp [SCORE] di [DAY] hari adalah skor tertinggi baru saya di Game Open Restaurant! Coba sekarang!'; //social share score message
+var shareTitle = 'Skor tertinggi saya pada OpenRestoran: [SCORE] secara keseluruhan [DAY] Hari';//social share score title
+var shareMessage = 'Skor tertinggi baru saya di Game Open Restaurant: [SCORE] secara keseluruhan [DAY] Hari. Coba sekarang!'; //social share score message
 
 /*!
  *
@@ -1746,15 +1746,15 @@ function share(action){
 	var loc = location.href
 	loc = loc.substring(0, loc.lastIndexOf("/") + 1);
 	
-	var title = 'Open Restorant Game';
-	var text = 'Hight Score';
+	var title = '';
+	var text = '';
 	
 	title = shareTitle.replace("[SCORE]", addCommas(playerData.score));
 	title = title.replace("[DAY]", playerData.day);
 	
 	text = shareMessage.replace("[SCORE]", addCommas(playerData.score));
 	text = text.replace("[DAY]", playerData.day);
-	var shareurl = 'https://anbupw.github.io/open/';
+	var shareurl = '';
 	
 	if( action == 'twitter' ) {
 		shareurl = 'https://twitter.com/intent/tweet?url='+loc+'&text='+text;
