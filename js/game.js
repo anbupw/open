@@ -411,14 +411,14 @@ function resetGame(){
 }
 
 function saveGame(score){
-	/*\\$.ajax({
+	$.ajax({
       type: "POST",
       url: 'saveResults.php',
       data: {score:score},
       success: function (result) {
           console.log(result);
       }
-    });*/
+    });
 }
 
 
