@@ -10,7 +10,7 @@
  * 
  */
  $(function() {
-	  var resumeAudioContext = function() {
+	 var resumeAudioContext = function() {
 		// handler for fixing suspended audio context in Chrome
 		try {
 			if (createjs.WebAudioPlugin.context.state === "suspended") {
@@ -31,12 +31,12 @@
 		alert("To install the game just upload folder 'game' to your server. The game won't run locally with some browser like Chrome due to some security mode.");
 	}
 	 
-	 
-	 $(window).resize(function(){
+	
+	$(window).resize(function(){
 		resizeLoaderFunc();
-	 });
-	 resizeLoaderFunc();
-	 checkBrowser();
+	});
+	resizeLoaderFunc();
+	checkBrowser();
 });
 
 /*!
@@ -71,10 +71,63 @@ function checkBrowser(){
 	if(browserSupport){
 		if(!isLoaded){
 			isLoaded=true;
-			initPreload();
+
+			detectAddScript(true, false);
 		}
 	}else{
 		//browser not support
 		$('#notSupportHolder').show();
 	}
+}
+
+function detectAddScript(score, mrs){
+	if(score){
+		if(checkAddScript("scoreboard/css/score.css", "scoreboard/js/score.js")){
+			if(mrs){
+				if(checkAddScript("memberrewards/css/memberrewards.css", "memberrewards/js/memberrewards.js")){
+					doneAddScript();
+				}else{
+					doneAddScript();
+				}
+			}else{
+				doneAddScript();
+			}
+		}else{
+			doneAddScript();
+		}
+	}else{
+		doneAddScript();
+	}
+}
+
+function checkAddScript(styleFile, scriptFile){
+	var styleExist = checkFileExist(styleFile);
+	var scriptExist = checkFileExist(scriptFile);
+
+	if(styleExist & scriptExist){
+		$('head').append('<link rel="stylesheet" type="text/css" href="'+styleFile+'">');
+		$('head').append('<script type="text/javascript" src="'+scriptFile+'"></script>');
+		return true;
+	}else{
+		return false;
+	}
+}
+
+function doneAddScript(){
+	//memberpayment
+	if(typeof memberData != 'undefined' && enableMembership){
+		initGameSettings();
+	}else{
+		initPreload();
+	}
+}
+
+function checkFileExist(urlToFile) {
+    var response = jQuery.ajax({
+		url: urlToFile,
+		type: 'HEAD',
+		async: false
+	}).status;	
+	
+	return (response != "200") ? false : true;
 }
