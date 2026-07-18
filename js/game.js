@@ -411,14 +411,32 @@ function resetGame(){
 }
 
 function saveGame(score){
-	/*\\$.ajax({
-      type: "POST",
-      url: 'saveResults.php',
-      data: {score:score},
-      success: function (result) {
-          console.log(result);
-      }
-    });*/
+    // 1. Minta nama pemain menggunakan prompt sederhana
+    var playerName = prompt("Selamat! Anda bertahan " + playerData.day + " hari. Masukkan nama Anda:", "Player");
+    if (!playerName || playerName.trim() === "") {
+        playerName = "Anonim";
+    }
+
+    // 2. Ambil data peringkat yang sudah ada di localStorage, atau buat array kosong jika belum ada
+    var leaderboard = JSON.parse(localStorage.getItem('openRestaurantLeaderboard')) || [];
+
+    // 3. Masukkan data permainan saat ini
+    leaderboard.push({ 
+        name: playerName, 
+        score: score, 
+        day: playerData.day 
+    });
+
+    // 4. Urutkan array berdasarkan skor tertinggi (Descending)
+    leaderboard.sort(function(a, b) {
+        return b.score - a.score;
+    });
+
+    // 5. Potong array agar hanya menyimpan 5 peringkat teratas
+    leaderboard.splice(5);
+
+    // 6. Simpan kembali ke localStorage
+    localStorage.setItem('openRestaurantLeaderboard', JSON.stringify(leaderboard));
 }
 
 
@@ -1664,6 +1682,7 @@ function buildResultScore(){
 	thisDay.x = canvasW/100*42.5;
 	thisDay.y = canvasH/100*54;
 	scoreContainer.addChild(thisDay);
+	displayLeaderboard();
 }
 /*!
  * 
@@ -1767,4 +1786,42 @@ function share(action){
 	}
 	
 	window.open(shareurl);
+}
+
+var leaderboardContainer; // Variabel global baru untuk menampung teks
+
+function displayLeaderboard() {
+    // Bersihkan container sebelumnya jika ada
+    if (leaderboardContainer != undefined) {
+        resultContainer.removeChild(leaderboardContainer);
+    }
+    
+    leaderboardContainer = new createjs.Container();
+    
+    // Ambil data dari localStorage
+    var leaderboard = JSON.parse(localStorage.getItem('openRestaurantLeaderboard')) || [];
+    
+    // Posisi Y awal, sesuaikan dengan layout background result Anda
+    var startX = canvasW / 100 * 50; // Di tengah layar
+    var startY = canvasH / 100 * 35; 
+    
+    // Judul Papan Peringkat
+    var titleTxt = new createjs.Text("TOP 5 PERINGKAT", "30px robotobold_condensed", "#FFFFFF");
+    titleTxt.textAlign = "center";
+    titleTxt.x = startX;
+    titleTxt.y = startY;
+    leaderboardContainer.addChild(titleTxt);
+    
+    // Daftar Peringkat
+    for (var i = 0; i < leaderboard.length; i++) {
+        var rankStr = (i + 1) + ". " + leaderboard[i].name + " - Rp" + addCommas(leaderboard[i].score);
+        var rankTxt = new createjs.Text(rankStr, "24px robotobold_condensed", "#FFDD00"); // Menggunakan warna emas/kuning
+        
+        rankTxt.textAlign = "center";
+        rankTxt.x = startX;
+        rankTxt.y = startY + 45 + (i * 35); // Jarak antar baris
+        leaderboardContainer.addChild(rankTxt);
+    }
+    
+    resultContainer.addChild(leaderboardContainer);
 }
