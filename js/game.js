@@ -335,6 +335,7 @@ function prepareGame(){
 	gameData.kitchenList_arr = [];
 	
 	createHuman('manager');
+	createHuman('assistant');
 	updateTime();
 	updateScore();
 	timeAlertTxt.alpha = 0;
@@ -354,6 +355,7 @@ function startGame(){
 	resetTime();
 	gameData.paused = false;
 	startQueueTimer(true);
+	findPath('assistant', $.interior[gameData.queueCounterNum].r, $.interior[gameData.queueCounterNum].c, true, 'goCounter');
 }
 
  /*!
@@ -407,7 +409,12 @@ function resetGame(){
 		objectsContainer.removeChild($.peopleList[i]);
     }
 	
-	objectsContainer.removeChild($.peopleList['manager']);	
+	objectsContainer.removeChild($.peopleList['manager']);
+	
+	if ($.peopleList['assistant']) {
+    objectsContainer.removeChild($.peopleList['assistant']);
+    delete $.peopleList['assistant'];
+}
 }
 
 function saveGame(score){
@@ -641,9 +648,15 @@ function checkInteriorObjAction(interiorObj){
 				if(inviteQueue(interiorObj.clickNum, $.interior[gameData.queueCounterNum].people[0])){
 					$.interior[gameData.queueCounterNum].people.splice(0,1);
 					$.interior[gameData.queueCounterNum].status = 'none';
-					findPath('manager', interiorObj.r, interiorObj.c, false, 'invite');
+					
+					// ---> SURUH ASISTEN YANG BERJALAN KE MEJA, BUKAN MANAGER
+					findPath('assistant', interiorObj.r, interiorObj.c, false, 'invite');
 				}else{
-					targetManager.action = 'inCounter';
+					if($.peopleList['assistant']) {
+						$.peopleList['assistant'].action = 'inCounter';
+					} else {
+						targetManager.action = 'inCounter';
+					}
 					displayTotalQueue(true);	
 				}
 			}else if(targetManager.action == '' && interiorObj.status == 'menu'){
@@ -727,6 +740,11 @@ function createHuman(type){
 		newHuman.r = newHuman.nextR = gameData.r;
 		newHuman.c = newHuman.nextC = gameData.c;
 		$.peopleList['manager'] = newHuman;
+	} else if(type == 'assistant'){ // ---> LOGIKA BARU UNTUK ASISTEN
+		newHuman = $.peoples[1].clone(); // Menggunakan sprite karakter perempuan pertama
+		newHuman.r = newHuman.nextR = $.interior[gameData.queueCounterNum].r;
+		newHuman.c = newHuman.nextC = $.interior[gameData.queueCounterNum].c;
+		$.peopleList['assistant'] = newHuman;
 	}else{
 		var randomNum = Math.floor(Math.random()*(people_arr.length-1));
 		newHuman = $.peoples[randomNum+1].clone();
@@ -1003,14 +1021,22 @@ function updateHumanAction(num){
 	
 	switch(targetHuman.action){
 		case 'goCounter':
-			gameData.action = '';
+			if (num == 'manager') {
+				gameData.action = '';
+			}
 			targetHuman.action = 'inCounter';
 			displayTotalQueue(true);
 		break;
 		
 		case 'invite':
-			gameData.action = '';
-			targetHuman.action = '';
+			if (num == 'assistant') {
+				targetHuman.action = '';
+				// ---> ASISTEN OTOMATIS KEMBALI KE MEJA ANTRIAN SETELAH MENGANTAR TAMU
+				findPath('assistant', $.interior[gameData.queueCounterNum].r, $.interior[gameData.queueCounterNum].c, true, 'goCounter');
+			} else {
+				gameData.action = '';
+				targetHuman.action = '';
+			}
 		break;
 		
 		case 'order':
@@ -1134,7 +1160,11 @@ function displayTotalQueue(con){
 			}
 		}
 		
-		if(count >= maxTotal && $.peopleList['manager'].action == 'inCounter'){
+		// ---> CEK APAKAH MANAGER ATAU ASISTEN YANG ADA DI PODIUM
+		var isManagerAtCounter = ($.peopleList['manager'].action == 'inCounter');
+		var isAssistantAtCounter = ($.peopleList['assistant'] && $.peopleList['assistant'].action == 'inCounter');
+		
+		if(count >= maxTotal && (isManagerAtCounter || isAssistantAtCounter)){
 			interiorObj.status = 'ready';
 			$.interior[gameData.queueCounterNum+'icon_queue_'+maxTotal].visible = true;
 			playSound('soundPop');
