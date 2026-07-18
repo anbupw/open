@@ -340,3 +340,39 @@ function centerReg(obj){
 function createHitarea(obj){
 	obj.hitArea = new createjs.Shape(new createjs.Graphics().beginFill("#000").drawRect(0, 0, obj.image.naturalWidth, obj.image.naturalHeight));	
 }
+
+/*!
+ * 
+ * CREATE LEADERBOARD ICON - Programmatically create a podium-like leaderboard icon
+ * 
+ */
+function createLeaderboardIcon(color) {
+    color = color || "#FFFFFF"; // Warna default putih
+    var iconContainer = new createjs.Container();
+    var shape = new createjs.Shape();
+    iconContainer.addChild(shape);
+
+    // Tentukan regX dan regY untuk perataan tengah
+    var w = 40; // Lebar total
+    var h = 30; // Tinggi total
+    shape.regX = w / 2;
+    shape.regY = h / 2;
+
+    // Gambar icon podium (3 bentuk persegi)
+    shape.graphics.beginFill(color);
+
+    // Kiri (Peringkat 3)
+    shape.graphics.drawRect(5, h - 18, 10, 18);
+    // Tengah (Peringkat 1 - Paling Tinggi)
+    shape.graphics.drawRect(15, h - 30, 10, 30);
+    // Kanan (Peringkat 2)
+    shape.graphics.drawRect(25, h - 24, 10, 24);
+
+    // Buat area hit untuk mendeteksi klik
+    var hit = new createjs.Shape();
+    hit.graphics.beginFill("#000").drawRect(0, 0, w, h);
+    iconContainer.hitArea = hit;
+    iconContainer.cursor = "pointer";
+
+    return iconContainer;
+}

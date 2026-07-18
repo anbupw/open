@@ -1800,25 +1800,23 @@ function displayLeaderboard() {
     var leaderboard = JSON.parse(localStorage.getItem('openRestaurantLeaderboard')) || [];
     
     // --- 1. AREA PAPAN PERINGKAT (Default: Tersembunyi) ---
+    // [Logika panel tetap sama seperti sebelumnya, diposisikan di kiri atas]
     var panelContainer = new createjs.Container();
     var startX = canvasW / 100 * 20; 
     var startY = canvasH / 100 * 30; 
     
-    // Background kotak gelap
     var bgPanel = new createjs.Shape();
     bgPanel.graphics.beginFill("rgba(0, 0, 0, 0.8)").drawRoundRect(-150, -40, 300, 240, 15);
     bgPanel.x = startX;
     bgPanel.y = startY;
     panelContainer.addChild(bgPanel);
     
-    // Teks Judul
     var titleTxt = new createjs.Text("🏆 TOP 5 PERINGKAT", "26px robotobold_condensed", "#FFFFFF");
     titleTxt.textAlign = "center";
     titleTxt.x = startX;
     titleTxt.y = startY;
     panelContainer.addChild(titleTxt);
     
-    // Looping daftar peringkat
     for (var i = 0; i < leaderboard.length; i++) {
         var rankStr = (i + 1) + ". " + leaderboard[i].name + " - Rp" + addCommas(String(leaderboard[i].score));
         var rankTxt = new createjs.Text(rankStr, "22px robotobold_condensed", "#FFDD00");
@@ -1828,37 +1826,37 @@ function displayLeaderboard() {
         panelContainer.addChild(rankTxt);
     }
     
-    // Sembunyikan panel pada awalnya
-    panelContainer.visible = false; 
+    panelContainer.visible = false; // Sembunyikan pada awalnya
     leaderboardContainer.addChild(panelContainer);
     
-    // --- 2. AREA TOMBOL "LIHAT PERINGKAT" ---
+    // --- 2. AREA TOMBOL ICON PERINGKAT (Baru, menggunakan icon) ---
+    // Buat container untuk icon
     var btnContainer = new createjs.Container();
-    btnContainer.x = canvasW / 100 * 20; // Posisi X tombol (di sebelah kiri)
-    btnContainer.y = canvasH / 100 * 70; // Posisi Y tombol (agak ke bawah)
     btnContainer.cursor = "pointer";
     
-    // Bentuk kotak tombol merah
-    var btnShape = new createjs.Shape();
-    btnShape.graphics.beginFill("#e74c3c").drawRoundRect(-100, -20, 200, 40, 10);
+    // Buat icon secara programmatik (memanggil fungsi dari canvas.js)
+    var lbIcon = createLeaderboardIcon("#FFFFFF"); // Icon podium putih
+    btnContainer.addChild(lbIcon);
     
-    // Teks di dalam tombol
-    var btnText = new createjs.Text("LIHAT PERINGKAT", "20px robotobold_condensed", "#FFFFFF");
-    btnText.textAlign = "center";
-    btnText.textBaseline = "middle";
+    // --- PENEMPATAN DINAMIS: DI SEBELAH PENGATURAN ---
+    // Tombol pengaturan (gerigi) sudah ada di canvasW - offset.x - 50, y=offset.y + 45
+    // Kita tempatkan icon ini sedikit lebih ke kiri
+    var settingsButtonX = buttonSettings.x; 
+    var settingsButtonY = buttonSettings.y; 
     
-    btnContainer.addChild(btnShape, btnText);
+    // Jarak antara icon (jarak dinamis berdasarkan pusat icon)
+    // Asumsi: tombol pengaturan ~50px, icon kita ~40px. Jarak pusat ~ (25+10+20) = 55px
+    btnContainer.x = settingsButtonX - 55;
+    btnContainer.y = settingsButtonY;
+    
     leaderboardContainer.addChild(btnContainer);
     
-    // --- 3. LOGIKA KLIK TOMBOL ---
+    // --- 3. LOGIKA KLIK TOMBOL (Sama seperti sebelumnya) ---
     btnContainer.addEventListener("click", function(evt) {
-        // Memunculkan/menyembunyikan panel saat diklik
+        // Toggle panel saat diklik
         panelContainer.visible = !panelContainer.visible;
-        
-        // Memutar efek suara tombol bawaan game Anda
         playSound('soundButton'); 
     });
     
-    // Masukkan semuanya ke dalam resultContainer bawaan game
     resultContainer.addChild(leaderboardContainer);
 }
