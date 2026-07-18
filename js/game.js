@@ -1791,37 +1791,74 @@ function share(action){
 var leaderboardContainer; // Variabel global baru untuk menampung teks
 
 function displayLeaderboard() {
-    // Bersihkan container sebelumnya jika ada
+    // Bersihkan container jika sudah ada sebelumnya
     if (leaderboardContainer != undefined) {
         resultContainer.removeChild(leaderboardContainer);
     }
     
     leaderboardContainer = new createjs.Container();
-    
-    // Ambil data dari localStorage
     var leaderboard = JSON.parse(localStorage.getItem('openRestaurantLeaderboard')) || [];
     
-    // Posisi Y awal, sesuaikan dengan layout background result Anda
-    var startX = canvasW / 100 * 50; // Di tengah layar
-    var startY = canvasH / 100 * 35; 
+    // --- 1. AREA PAPAN PERINGKAT (Default: Tersembunyi) ---
+    var panelContainer = new createjs.Container();
+    var startX = canvasW / 100 * 20; 
+    var startY = canvasH / 100 * 30; 
     
-    // Judul Papan Peringkat
-    var titleTxt = new createjs.Text("TOP 5 PERINGKAT", "30px robotobold_condensed", "#FFFFFF");
+    // Background kotak gelap
+    var bgPanel = new createjs.Shape();
+    bgPanel.graphics.beginFill("rgba(0, 0, 0, 0.8)").drawRoundRect(-150, -40, 300, 240, 15);
+    bgPanel.x = startX;
+    bgPanel.y = startY;
+    panelContainer.addChild(bgPanel);
+    
+    // Teks Judul
+    var titleTxt = new createjs.Text("🏆 TOP 5 PERINGKAT", "26px robotobold_condensed", "#FFFFFF");
     titleTxt.textAlign = "center";
     titleTxt.x = startX;
     titleTxt.y = startY;
-    leaderboardContainer.addChild(titleTxt);
+    panelContainer.addChild(titleTxt);
     
-    // Daftar Peringkat
+    // Looping daftar peringkat
     for (var i = 0; i < leaderboard.length; i++) {
-        var rankStr = (i + 1) + ". " + leaderboard[i].name + " - Rp" + addCommas(leaderboard[i].score);
-        var rankTxt = new createjs.Text(rankStr, "24px robotobold_condensed", "#FFDD00"); // Menggunakan warna emas/kuning
-        
+        var rankStr = (i + 1) + ". " + leaderboard[i].name + " - Rp" + addCommas(String(leaderboard[i].score));
+        var rankTxt = new createjs.Text(rankStr, "22px robotobold_condensed", "#FFDD00");
         rankTxt.textAlign = "center";
         rankTxt.x = startX;
-        rankTxt.y = startY + 45 + (i * 35); // Jarak antar baris
-        leaderboardContainer.addChild(rankTxt);
+        rankTxt.y = startY + 45 + (i * 30);
+        panelContainer.addChild(rankTxt);
     }
     
+    // Sembunyikan panel pada awalnya
+    panelContainer.visible = false; 
+    leaderboardContainer.addChild(panelContainer);
+    
+    // --- 2. AREA TOMBOL "LIHAT PERINGKAT" ---
+    var btnContainer = new createjs.Container();
+    btnContainer.x = canvasW / 100 * 20; // Posisi X tombol (di sebelah kiri)
+    btnContainer.y = canvasH / 100 * 70; // Posisi Y tombol (agak ke bawah)
+    btnContainer.cursor = "pointer";
+    
+    // Bentuk kotak tombol merah
+    var btnShape = new createjs.Shape();
+    btnShape.graphics.beginFill("#e74c3c").drawRoundRect(-100, -20, 200, 40, 10);
+    
+    // Teks di dalam tombol
+    var btnText = new createjs.Text("LIHAT PERINGKAT", "20px robotobold_condensed", "#FFFFFF");
+    btnText.textAlign = "center";
+    btnText.textBaseline = "middle";
+    
+    btnContainer.addChild(btnShape, btnText);
+    leaderboardContainer.addChild(btnContainer);
+    
+    // --- 3. LOGIKA KLIK TOMBOL ---
+    btnContainer.addEventListener("click", function(evt) {
+        // Memunculkan/menyembunyikan panel saat diklik
+        panelContainer.visible = !panelContainer.visible;
+        
+        // Memutar efek suara tombol bawaan game Anda
+        playSound('soundButton'); 
+    });
+    
+    // Masukkan semuanya ke dalam resultContainer bawaan game
     resultContainer.addChild(leaderboardContainer);
 }
