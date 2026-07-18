@@ -1830,7 +1830,7 @@ function displayLeaderboard() {
     var leaderboard = JSON.parse(localStorage.getItem('openRestaurantLeaderboard')) || [];
     
     // --- 1. AREA PAPAN PERINGKAT (Default: Tersembunyi) ---
-    // [Logika panel tetap sama seperti sebelumnya, diposisikan di kiri atas]
+    // [Logika panel tetap sama, diposisikan di kiri atas]
     var panelContainer = new createjs.Container();
     var startX = canvasW / 100 * 20; 
     var startY = canvasH / 100 * 30; 
@@ -1848,6 +1848,7 @@ function displayLeaderboard() {
     panelContainer.addChild(titleTxt);
     
     for (var i = 0; i < leaderboard.length; i++) {
+        // addCommas dipanggil dengan String cast agar aman
         var rankStr = (i + 1) + ". " + leaderboard[i].name + " - Rp" + addCommas(String(leaderboard[i].score));
         var rankTxt = new createjs.Text(rankStr, "22px robotobold_condensed", "#FFDD00");
         rankTxt.textAlign = "center";
@@ -1859,29 +1860,36 @@ function displayLeaderboard() {
     panelContainer.visible = false; // Sembunyikan pada awalnya
     leaderboardContainer.addChild(panelContainer);
     
-    // --- 2. AREA TOMBOL ICON PERINGKAT (Baru, menggunakan icon) ---
+    // --- 2. AREA TOMBOL ICON PERINGKAT (Baru, menggunakan gambar PNG) ---
     // Buat container untuk icon
     var btnContainer = new createjs.Container();
     btnContainer.cursor = "pointer";
     
-    // Buat icon secara programmatik (memanggil fungsi dari canvas.js)
-    var lbIcon = createLeaderboardIcon("#FFFFFF"); // Icon podium putih
+    // --> BARU: Gunakan gambar leaderboard.png yang sudah ada di folder assets
+    // Perhatikan: Game Anda kemungkinan besar memuat aset melalui 'loader'
+    var lbIcon = new createjs.Bitmap(loader.getResult('leaderboard')); 
+    
+    // Penting: Atur RegX dan RegY ke tengah agar positioning sejajar dengan settings
+    // Kita asumsikan gambar sudah dimuat, jadi kita bisa ambil ukurannya
+    if (lbIcon.image) {
+        lbIcon.regX = lbIcon.image.naturalWidth / 2;
+        lbIcon.regY = lbIcon.image.naturalHeight / 2;
+    }
+    
     btnContainer.addChild(lbIcon);
     
-    // --- PENEMPATAN DINAMIS: DI SEBELAH PENGATURAN ---
-    // Tombol pengaturan (gerigi) sudah ada di canvasW - offset.x - 50, y=offset.y + 45
-    // Kita tempatkan icon ini sedikit lebih ke kiri
+    // --- PENEMPATAN: DI SEBELAH PENGATURAN ---
+    // Gunakan posisi tombol settings sebagai referensi
     var settingsButtonX = buttonSettings.x; 
     var settingsButtonY = buttonSettings.y; 
     
-    // Jarak antara icon (jarak dinamis berdasarkan pusat icon)
-    // Asumsi: tombol pengaturan ~50px, icon kita ~40px. Jarak pusat ~ (25+10+20) = 55px
+    // Jarak X (misal jarak pusat-ke-pusat 55px ke kiri)
     btnContainer.x = settingsButtonX - 55;
     btnContainer.y = settingsButtonY;
     
     leaderboardContainer.addChild(btnContainer);
     
-    // --- 3. LOGIKA KLIK TOMBOL (Sama seperti sebelumnya) ---
+    // --- 3. LOGIKA KLIK TOMBOL (Tetap sama) ---
     btnContainer.addEventListener("click", function(evt) {
         // Toggle panel saat diklik
         panelContainer.visible = !panelContainer.visible;
