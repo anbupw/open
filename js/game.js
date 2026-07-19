@@ -624,65 +624,86 @@ function buildInteriorEvent(interiorObj){
 }
 
 function checkInteriorObjAction(interiorObj){
-	//console.log('interior : '+interiorObj.type+' '+interiorObj.r+' '+interiorObj.c);
-	var targetManager = $.peopleList['manager'];
-	targetManager.actionObj = interiorObj;
-	targetManager.faceR = targetManager.faceC = null;
-	targetManager.exactR = targetManager.exactC = null;
-	
-	if(interiorObj.exactR != null && interiorObj.exactC != null){
-		targetManager.exactR = interiorObj.exactR;
-		targetManager.exactC = interiorObj.exactC;
-	}
-	
-	if(targetManager.action == 'inCounter'){
-		targetManager.action = '';	
-	}
-	
-	displayTotalQueue(false);
-	switch(interiorObj.type){
-		case 'queueCounter':
-			if(targetManager.action == '' || targetManager.action == 'inCounter'){
-				findPath('manager', interiorObj.r, interiorObj.c, true, 'goCounter');
-			}
-		break;
-		
-		case 'table':
-			if(interiorObj.status == 'none' && $.interior[gameData.queueCounterNum].status == 'ready'){
-				if(inviteQueue(interiorObj.clickNum, $.interior[gameData.queueCounterNum].people[0])){
-					$.interior[gameData.queueCounterNum].people.splice(0,1);
-					$.interior[gameData.queueCounterNum].status = 'none';
-					
-					// ---> SURUH ASISTEN YANG BERJALAN KE MEJA, BUKAN MANAGER
-					findPath('assistant', interiorObj.r, interiorObj.c, false, 'invite');
-				}else{
-					if($.peopleList['assistant']) {
-						$.peopleList['assistant'].action = 'inCounter';
-					} else {
-						targetManager.action = 'inCounter';
-					}
-					displayTotalQueue(true);	
-				}
-			}else if(targetManager.action == '' && interiorObj.status == 'menu'){
-				interiorObj.status = '';
-				findPath('manager', interiorObj.r, interiorObj.c, false, 'order');	
-			}else if(targetManager.action == 'foodOnHand' && interiorObj.status == 'waitFood'){
-				if(gameData.kitchenList_arr[0] == interiorObj.clickNum){
-					findPath('manager', interiorObj.r, interiorObj.c, false, 'serveFood');
-				}
-			}else if(targetManager.action == '' && interiorObj.status == 'bill'){
-				findPath('manager', interiorObj.r, interiorObj.c, false, 'acceptPayment');
-			}else if(targetManager.action == '' && interiorObj.status == 'clean'){
-				findPath('manager', interiorObj.r, interiorObj.c, false, 'cleanTable');
-			}
-		break;
-		
-		case 'kitchen':
-			if(targetManager.action == '' && gameData.kitchenList_arr.length > 0){
-				findPath('manager', $.interior[gameData.kitchenNum].r+1, $.interior[gameData.kitchenNum].c, true, 'takeFood');
-			}
-		break;
-	}
+    var targetManager = $.peopleList['manager'];
+    var targetAssistant = $.peopleList['assistant']; // Kenali keberadaan asisten
+    
+    // Matikan ikon pop-up sementara saat sedang diproses
+    displayTotalQueue(false);
+    
+    // --- 1. TUGAS ASISTEN: KLIK MEJA KOSONG UNTUK MENGANTAR TAMU ---
+    if (interiorObj.type == 'table' && interiorObj.status == 'none' && $.interior[gameData.queueCounterNum].status == 'ready') {
+        if(inviteQueue(interiorObj.clickNum, $.interior[gameData.queueCounterNum].people[0])){
+            $.interior[gameData.queueCounterNum].people.splice(0,1);
+            $.interior[gameData.queueCounterNum].status = 'none';
+            
+            if (targetAssistant) {
+                targetAssistant.actionObj = interiorObj;
+                // Asisten yang berjalan mengantar tamu
+                findPath('assistant', interiorObj.r, interiorObj.c, false, 'invite');
+            } else {
+                targetManager.actionObj = interiorObj;
+                findPath('manager', interiorObj.r, interiorObj.c, false, 'invite');
+            }
+        } else {
+            if(targetAssistant) {
+                targetAssistant.action = 'inCounter';
+            } else {
+                targetManager.action = 'inCounter';
+            }
+            displayTotalQueue(true);	
+        }
+        return; // Hentikan fungsi di sini! Manajer tidak akan terganggu.
+    }
+    
+    // --- 2. CEGAH MANAJER: JIKA MENGKLIK PELANGGAN / PODIUM ---
+    if (interiorObj.type == 'queueCounter' && targetAssistant) {
+        displayTotalQueue(true); // Kembalikan ikon pop-up
+        return; // Abaikan klik ini karena asisten sudah menanganinya!
+    }
+
+    // --- 3. TUGAS MANAJER: LOGIKA NORMAL GAME ---
+    targetManager.actionObj = interiorObj;
+    targetManager.faceR = targetManager.faceC = null;
+    targetManager.exactR = targetManager.exactC = null;
+    
+    if(interiorObj.exactR != null && interiorObj.exactC != null){
+        targetManager.exactR = interiorObj.exactR;
+        targetManager.exactC = interiorObj.exactC;
+    }
+    
+    if(targetManager.action == 'inCounter'){
+        targetManager.action = '';	
+    }
+    
+    switch(interiorObj.type){
+        case 'queueCounter':
+            // Ini hanya akan jalan jika asisten tidak ada (cadangan)
+            if(targetManager.action == '' || targetManager.action == 'inCounter'){
+                findPath('manager', interiorObj.r, interiorObj.c, true, 'goCounter');
+            }
+        break;
+        
+        case 'table':
+            if(targetManager.action == '' && interiorObj.status == 'menu'){
+                interiorObj.status = '';
+                findPath('manager', interiorObj.r, interiorObj.c, false, 'order');	
+            }else if(targetManager.action == 'foodOnHand' && interiorObj.status == 'waitFood'){
+                if(gameData.kitchenList_arr[0] == interiorObj.clickNum){
+                    findPath('manager', interiorObj.r, interiorObj.c, false, 'serveFood');
+                }
+            }else if(targetManager.action == '' && interiorObj.status == 'bill'){
+                findPath('manager', interiorObj.r, interiorObj.c, false, 'acceptPayment');
+            }else if(targetManager.action == '' && interiorObj.status == 'clean'){
+                findPath('manager', interiorObj.r, interiorObj.c, false, 'cleanTable');
+            }
+        break;
+        
+        case 'kitchen':
+            if(targetManager.action == '' && gameData.kitchenList_arr.length > 0){
+                findPath('manager', $.interior[gameData.kitchenNum].r+1, $.interior[gameData.kitchenNum].c, true, 'takeFood');
+            }
+        break;
+    }
 }
 
 function createGrid(){
@@ -1039,15 +1060,16 @@ function updateHumanAction(num){
 		break;
 		
 		case 'invite':
-			if (num == 'assistant') {
-				targetHuman.action = '';
-				// ---> ASISTEN OTOMATIS KEMBALI KE MEJA ANTRIAN SETELAH MENGANTAR TAMU
-				findPath('assistant', $.interior[gameData.queueCounterNum].r, $.interior[gameData.queueCounterNum].c, true, 'goCounter');
-			} else {
-				gameData.action = '';
-				targetHuman.action = '';
-			}
-		break;
+            if (num == 'assistant') {
+                targetHuman.action = '';
+                var podium = $.interior[gameData.queueCounterNum];
+                // Menggunakan exactR dan exactC agar asisten berdiri tepat di posisi belakang podium
+                findPath('assistant', podium.exactR, podium.exactC, true, 'goCounter');
+            } else {
+                gameData.action = '';
+                targetHuman.action = '';
+            }
+        break;
 		
 		case 'order':
 			var orderTimer = gameSetting.orderTimer * gameData.dailySpeed;
