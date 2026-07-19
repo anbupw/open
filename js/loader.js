@@ -52,6 +52,7 @@ function initPreload(){
 			{src:'assets/item_confirm.png', id:'itemConfirm'},
 			{src:'assets/button_cancel.png', id:'buttonCancel'},
 			{src:'assets/button_exit.png', id:'buttonExit'},
+			{src:'assets/leaderboard.png', id:'leaderboard'},
 			{src:'assets/button_settings.png', id:'buttonSettings'}
 	];
 			

@@ -625,12 +625,27 @@ function buildInteriorEvent(interiorObj){
 
 function checkInteriorObjAction(interiorObj){
     var targetManager = $.peopleList['manager'];
-    var targetAssistant = $.peopleList['assistant']; // Kenali keberadaan asisten
-    
-    // Matikan ikon pop-up sementara saat sedang diproses
+    var targetAssistant = $.peopleList['assistant']; 
+
     displayTotalQueue(false);
-    
-    // --- 1. TUGAS ASISTEN: KLIK MEJA KOSONG UNTUK MENGANTAR TAMU ---
+
+    // --- 1. JIKA PODIUM/ANTRIAN DIKLIK MANUAL ---
+    if (interiorObj.type == 'queueCounter') {
+        if (targetAssistant) {
+            targetAssistant.actionObj = interiorObj;
+            targetAssistant.exactR = interiorObj.exactR; // Berikan koordinat presisi
+            targetAssistant.exactC = interiorObj.exactC;
+            findPath('assistant', interiorObj.r, interiorObj.c, true, 'goCounter');
+        } else {
+            targetManager.actionObj = interiorObj;
+            targetManager.exactR = interiorObj.exactR; 
+            targetManager.exactC = interiorObj.exactC;
+            findPath('manager', interiorObj.r, interiorObj.c, true, 'goCounter');
+        }
+        return; 
+    }
+
+    // --- 2. TUGAS ASISTEN: MENGANTAR TAMU KE MEJA ---
     if (interiorObj.type == 'table' && interiorObj.status == 'none' && $.interior[gameData.queueCounterNum].status == 'ready') {
         if(inviteQueue(interiorObj.clickNum, $.interior[gameData.queueCounterNum].people[0])){
             $.interior[gameData.queueCounterNum].people.splice(0,1);
@@ -638,30 +653,24 @@ function checkInteriorObjAction(interiorObj){
             
             if (targetAssistant) {
                 targetAssistant.actionObj = interiorObj;
-                // Asisten yang berjalan mengantar tamu
+                targetAssistant.exactR = interiorObj.exactR;
+                targetAssistant.exactC = interiorObj.exactC;
                 findPath('assistant', interiorObj.r, interiorObj.c, false, 'invite');
             } else {
                 targetManager.actionObj = interiorObj;
+                targetManager.exactR = interiorObj.exactR;
+                targetManager.exactC = interiorObj.exactC;
                 findPath('manager', interiorObj.r, interiorObj.c, false, 'invite');
             }
         } else {
-            if(targetAssistant) {
-                targetAssistant.action = 'inCounter';
-            } else {
-                targetManager.action = 'inCounter';
-            }
+            if(targetAssistant) targetAssistant.action = 'inCounter';
+            else targetManager.action = 'inCounter';
             displayTotalQueue(true);	
         }
-        return; // Hentikan fungsi di sini! Manajer tidak akan terganggu.
-    }
-    
-    // --- 2. CEGAH MANAJER: JIKA MENGKLIK PELANGGAN / PODIUM ---
-    if (interiorObj.type == 'queueCounter' && targetAssistant) {
-        displayTotalQueue(true); // Kembalikan ikon pop-up
-        return; // Abaikan klik ini karena asisten sudah menanganinya!
+        return;
     }
 
-    // --- 3. TUGAS MANAJER: LOGIKA NORMAL GAME ---
+    // --- 3. TUGAS MANAJER: NORMAL GAMEPLAY ---
     targetManager.actionObj = interiorObj;
     targetManager.faceR = targetManager.faceC = null;
     targetManager.exactR = targetManager.exactC = null;
@@ -676,13 +685,6 @@ function checkInteriorObjAction(interiorObj){
     }
     
     switch(interiorObj.type){
-        case 'queueCounter':
-            // Ini hanya akan jalan jika asisten tidak ada (cadangan)
-            if(targetManager.action == '' || targetManager.action == 'inCounter'){
-                findPath('manager', interiorObj.r, interiorObj.c, true, 'goCounter');
-            }
-        break;
-        
         case 'table':
             if(targetManager.action == '' && interiorObj.status == 'menu'){
                 interiorObj.status = '';
@@ -1063,8 +1065,12 @@ function updateHumanAction(num){
             if (num == 'assistant') {
                 targetHuman.action = '';
                 var podium = $.interior[gameData.queueCounterNum];
-                // Menggunakan exactR dan exactC agar asisten berdiri tepat di posisi belakang podium
-                findPath('assistant', podium.exactR, podium.exactC, true, 'goCounter');
+                
+                // --> TAMBAHKAN DUA BARIS INI (Sangat Penting)
+                targetHuman.exactR = podium.exactR;
+                targetHuman.exactC = podium.exactC;
+                
+                findPath('assistant', podium.r, podium.c, true, 'goCounter');
             } else {
                 gameData.action = '';
                 targetHuman.action = '';
@@ -1892,38 +1898,42 @@ function displayLeaderboard() {
     panelContainer.visible = false; // Sembunyikan pada awalnya
     leaderboardContainer.addChild(panelContainer);
     
-    // --- 2. AREA TOMBOL ICON PERINGKAT (Baru, menggunakan gambar PNG) ---
-    // Buat container untuk icon
+    // --- 2. AREA TOMBOL ICON PERINGKAT (ANTI-GAGAL) ---
     var btnContainer = new createjs.Container();
     btnContainer.cursor = "pointer";
     
-    // --> BARU: Gunakan gambar leaderboard.png yang sudah ada di folder assets
-    // Perhatikan: Game Anda kemungkinan besar memuat aset melalui 'loader'
+    // A. Buat bantalan tombol berwarna agar pasti terlihat & bisa diklik
+    var btnBg = new createjs.Shape();
+    btnBg.graphics.beginFill("#e74c3c").drawRoundRect(-25, -25, 50, 50, 10); // Kotak merah 50x50
+    btnContainer.addChild(btnBg);
+    
+    // B. Masukkan gambar leaderboard.png
     var lbIcon = new createjs.Bitmap(loader.getResult('leaderboard')); 
     
-    // Penting: Atur RegX dan RegY ke tengah agar positioning sejajar dengan settings
-    // Kita asumsikan gambar sudah dimuat, jadi kita bisa ambil ukurannya
+    // Cek apakah gambar berhasil diload
     if (lbIcon.image) {
         lbIcon.regX = lbIcon.image.naturalWidth / 2;
         lbIcon.regY = lbIcon.image.naturalHeight / 2;
+        btnContainer.addChild(lbIcon);
+    } else {
+        // Fallback: Jika gambar PNG gagal, tampilkan emoji/teks cadangan
+        var fallbackTxt = new createjs.Text("🏆", "25px Arial", "#FFFFFF");
+        fallbackTxt.textAlign = "center";
+        fallbackTxt.textBaseline = "middle";
+        btnContainer.addChild(fallbackTxt);
     }
     
-    btnContainer.addChild(lbIcon);
-    
-    // --- PENEMPATAN: DI SEBELAH PENGATURAN ---
-    // Gunakan posisi tombol settings sebagai referensi
+    // C. Penempatan di sebelah tombol Settings
     var settingsButtonX = buttonSettings.x; 
     var settingsButtonY = buttonSettings.y; 
     
-    // Jarak X (misal jarak pusat-ke-pusat 55px ke kiri)
-    btnContainer.x = settingsButtonX - 55;
+    btnContainer.x = settingsButtonX - 65; // Geser ke kiri dari settings
     btnContainer.y = settingsButtonY;
     
     leaderboardContainer.addChild(btnContainer);
     
-    // --- 3. LOGIKA KLIK TOMBOL (Tetap sama) ---
+    // --- 3. LOGIKA KLIK TOMBOL ---
     btnContainer.addEventListener("click", function(evt) {
-        // Toggle panel saat diklik
         panelContainer.visible = !panelContainer.visible;
         playSound('soundButton'); 
     });
