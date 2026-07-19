@@ -1005,18 +1005,22 @@ function moveHuman(num){
 		
 		$.peopleList[num].pathNum++;
 		
+        // ==========================================================
+        // --- PERBAIKAN: DETEKSI UPGRADE ANTI-GAGAL ---
+        // ==========================================================
         var speedMultiplier = 1;
+        
+        // Pastikan variabel terbaca, jika tidak anggap level 0
+        var safeUpgManager = (typeof upgManager !== 'undefined') ? upgManager : 0;
+        var safeUpgAssistant = (typeof upgAssistant !== 'undefined') ? upgAssistant : 0;
+        
         if (num == 'manager') {
-            // Setiap level mengurangi waktu tempuh 15% (Level 3 = 45% lebih cepat)
-            speedMultiplier = 1 - (upgManager * 0.15); 
+            speedMultiplier = 1 - (safeUpgManager * 0.15); 
         } else if (num == 'assistant') {
-            speedMultiplier = 1 - (upgAssistant * 0.15);
+            speedMultiplier = 1 - (safeUpgAssistant * 0.15);
         }
         
-        // Ambil kecepatan dasar bawaan game
 		var moveSpeed = num == 'manager' ? (gameSetting.moveSpeed * gameData.dailySpeedManager) : gameSetting.moveSpeed;
-        
-        // Kalikan dengan diskon waktu dari upgrade kita!
         moveSpeed = moveSpeed * speedMultiplier;
         // ==========================================================
 
@@ -1209,7 +1213,7 @@ function displayTotalQueue(con){
 	var interiorObj = $.interior[gameData.queueCounterNum];
 	if(con && interiorObj.people.length > 0){
 		var count = 0;
-		var maxTotal = Number(interiorObj.people[0]); // maxTotal = jumlah tamu dalam rombongan
+		var maxTotal = Number(interiorObj.people[0]); 
 		for(var n=0; n<gameData.queueSlot_arr.length; n++){
 			var targetHuman = gameData.queueSlot_arr[n].stand;
 			if(targetHuman != null && targetHuman.tweenComplete){
@@ -1221,46 +1225,53 @@ function displayTotalQueue(con){
 		var isAssistantAtCounter = ($.peopleList['assistant'] && $.peopleList['assistant'].action == 'inCounter');
 		
 		if(count >= maxTotal){
-            // --- FITUR AUTO-SEATING CERDAS ---
             if (isAssistantAtCounter) {
+                var targetTableIndex = -1;
+                
+                // 1. CARI MEJA YANG PALING COCOK DULU (Aturan Ketat)
                 for (var i = 0; i < position_arr.length; i++) {
                     if ($.interior[i] && $.interior[i].type === 'table' && $.interior[i].status === 'none') {
                         
-                        // ---> CEK KAPASITAS MEJA YANG TERSEDIA <---
-                        // Mengambil data batas kursi meja (biasanya tersimpan di max)
-                        var tableCapacity = $.interior[i].max || position_arr[i].max; 
-                        var isMatch = false;
+                        // Deteksi kapasitas meja, default ke 4 jika game tidak menyediakan info
+                        var tableCapacity = $.interior[i].max || (position_arr[i] && position_arr[i].max) || 4; 
                         
-                        // LOGIKA 1: Jika tamu 1-2 orang, WAJIB cari meja kapasitas 2
                         if (maxTotal <= 2 && tableCapacity == 2) {
-                            isMatch = true;
-                        } 
-                        // LOGIKA 2: Jika tamu 3-4 orang, WAJIB cari meja kapasitas 4
-                        else if (maxTotal > 2 && tableCapacity == 4) {
-                            isMatch = true;
+                            targetTableIndex = i; break; // Cocok sempurna untuk 1-2 orang
+                        } else if (maxTotal > 2 && tableCapacity >= 4) {
+                            targetTableIndex = i; break; // Cocok sempurna untuk 3-4 orang
                         }
+                    }
+                }
+                
+                // 2. RENCANA CADANGAN (Agar asisten tidak mogok)
+                // Jika tamu 1-2 orang TAPI tidak ada meja 2 kursi sama sekali di restoran, 
+                // asisten akan mengalah dan menaruh mereka di meja 4 kursi yang kosong.
+                if (targetTableIndex === -1 && maxTotal <= 2) {
+                    for (var i = 0; i < position_arr.length; i++) {
+                         if ($.interior[i] && $.interior[i].type === 'table' && $.interior[i].status === 'none') {
+                             targetTableIndex = i; break;
+                         }
+                    }
+                }
+                
+                // 3. JIKA MEJA DITEMUKAN, ANTARKAN TAMU
+                if (targetTableIndex !== -1) {
+                    if (inviteQueue(targetTableIndex, maxTotal)) {
+                        interiorObj.people.splice(0, 1);
+                        interiorObj.status = 'none';
                         
-                        // Jika kapasitas mejanya SANGAT COCOK dengan aturan di atas
-                        if (isMatch) {
-                            if (inviteQueue(i, maxTotal)) {
-                                interiorObj.people.splice(0, 1);
-                                interiorObj.status = 'none';
-                                
-                                var assistant = $.peopleList['assistant'];
-                                assistant.actionObj = $.interior[i];
-                                assistant.exactR = null; 
-                                assistant.exactC = null;
-                                
-                                findPath('assistant', $.interior[i].r, $.interior[i].c, false, 'invite');
-                                return; // Hentikan pencarian karena tamu sudah diantar
-                            }
-                        }
+                        var assistant = $.peopleList['assistant'];
+                        assistant.actionObj = $.interior[targetTableIndex];
+                        assistant.exactR = null; 
+                        assistant.exactC = null;
+                        
+                        findPath('assistant', $.interior[targetTableIndex].r, $.interior[targetTableIndex].c, false, 'invite');
+                        return; 
                     }
                 }
             }
             
-            // --- JIKA MEJA YANG "SESUAI KAPASITAS" SEDANG PENUH ---
-            // Tamu akan tetap menunggu di luar sampai meja yang ukurannya pas sudah kosong
+            // --- JIKA SEMUA MEJA BENAR-BENAR PENUH ---
             if (isManagerAtCounter || isAssistantAtCounter) {
                 interiorObj.status = 'ready';
                 $.interior[gameData.queueCounterNum+'icon_queue_'+maxTotal].visible = true;
