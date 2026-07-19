@@ -1358,8 +1358,11 @@ function findPath(num, r, c, con, action){
 	var targetHuman = $.peopleList[num];
 	targetHuman.action = action;
 	
-	if(num == 'manager'){
-		gameData.action = action;
+	// ---> PERBAIKAN: BERIKAN ARAH WAJAH UNTUK MANAJER DAN ASISTEN <---
+	if(num == 'manager' || num == 'assistant'){
+		if(num == 'manager'){
+			gameData.action = action; // Status game hanya diubah oleh manager
+		}
 		targetHuman.faceR = r;
 		targetHuman.faceC = c;	
 	}
