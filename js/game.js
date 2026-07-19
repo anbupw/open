@@ -406,15 +406,19 @@ function resetGame(){
 	
 	//reset human
 	for(var i=1; i<gameData.peopleNum; i++) {
-		objectsContainer.removeChild($.peopleList[i]);
-    }
+        // Tambahkan pengecekan if untuk menghindari error "undefined"
+		if($.peopleList[i] != undefined){ 
+			objectsContainer.removeChild($.peopleList[i]);
+		}
+	}
 	
-	objectsContainer.removeChild($.peopleList['manager']);
+	objectsContainer.removeChild($.peopleList['manager']);	
 	
+	// Hapus asisten cukup satu kali saja
 	if ($.peopleList['assistant']) {
-    objectsContainer.removeChild($.peopleList['assistant']);
-    delete $.peopleList['assistant'];
-}
+		objectsContainer.removeChild($.peopleList['assistant']);
+		delete $.peopleList['assistant'];
+	}
 }
 
 function saveGame(score){
@@ -735,17 +739,19 @@ function generatePath(num, r, c){
  */
 function createHuman(type){
 	var newHuman;
+	
 	if(type == 'manager'){
 		newHuman = $.peoples[0].clone();
 		newHuman.r = newHuman.nextR = gameData.r;
 		newHuman.c = newHuman.nextC = gameData.c;
 		$.peopleList['manager'] = newHuman;
-	} else if(type == 'assistant'){ // ---> LOGIKA BARU UNTUK ASISTEN
-		newHuman = $.peoples[1].clone(); // Menggunakan sprite karakter perempuan pertama
-		newHuman.r = newHuman.nextR = $.interior[gameData.queueCounterNum].r;
-		newHuman.c = newHuman.nextC = $.interior[gameData.queueCounterNum].c;
+	} else if(type == 'assistant'){
+		newHuman = $.peoples[1].clone(); // Karakter asisten wanita
+		// Spawn tepat di titik berdiri podium (exactR & exactC)
+		newHuman.r = newHuman.nextR = $.interior[gameData.queueCounterNum].exactR;
+		newHuman.c = newHuman.nextC = $.interior[gameData.queueCounterNum].exactC;
 		$.peopleList['assistant'] = newHuman;
-	}else{
+	} else {
 		var randomNum = Math.floor(Math.random()*(people_arr.length-1));
 		newHuman = $.peoples[randomNum+1].clone();
 		var randomPos = Math.floor(Math.random()*entrace_arr.enter.length);
@@ -767,15 +773,19 @@ function createHuman(type){
 	objectsContainer.addChild(newHuman);
 	sortObjectIndex();
 	
-	if(type != 'manager'){
-		var randomNum = Math.floor(Math.random()*9)*.2;
-		newHuman.visible = false;
-		TweenMax.to(newHuman, randomNum, {overwrite:true, onComplete:enterQueue, onCompleteParams:[gameData.peopleNum]});	
-	}else{
+	// ---> PERBAIKAN BUG VISIBILITY DI SINI <---
+	if(type == 'manager'){
 		newHuman.action = 'inCounter';
-		//newHuman.action = '';
-		//findPath('manager', 14, 1, false, 'move');
+	} else if(type == 'assistant') {
+		newHuman.visible = true;       // Paksa asisten agar terlihat
+		newHuman.action = 'inCounter'; // Status asisten standby di podium
+	} else {
+		// Logika ini sekarang khusus untuk tamu yang masuk antrean
+		var randomNum = Math.floor(Math.random()*9)*.2;
+		newHuman.visible = false; 
+		TweenMax.to(newHuman, randomNum, {overwrite:true, onComplete:enterQueue, onCompleteParams:[gameData.peopleNum]});	
 	}
+	
 	gameData.peopleNum++;
 }
 
