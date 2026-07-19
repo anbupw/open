@@ -355,7 +355,6 @@ function startGame(){
 	resetTime();
 	gameData.paused = false;
 	startQueueTimer(true);
-	findPath('assistant', $.interior[gameData.queueCounterNum].r, $.interior[gameData.queueCounterNum].c, true, 'goCounter');
 }
 
  /*!
@@ -1198,10 +1197,18 @@ function displayTotalQueue(con){
 			}
 		}
 		
-		// ---> CEK APAKAH MANAGER ATAU ASISTEN YANG ADA DI PODIUM
-		var isManagerAtCounter = ($.peopleList['manager'].action == 'inCounter');
-		var isAssistantAtCounter = ($.peopleList['assistant'] && $.peopleList['assistant'].action == 'inCounter');
+		// ---> CEK KEBERADAAN MANAJER & ASISTEN DENGAN AMAN
+		var isManagerAtCounter = false;
+		var isAssistantAtCounter = false;
 		
+		if ($.peopleList['manager'] && $.peopleList['manager'].action == 'inCounter') {
+		    isManagerAtCounter = true;
+		}
+		if ($.peopleList['assistant'] && $.peopleList['assistant'].action == 'inCounter') {
+		    isAssistantAtCounter = true;
+		}
+		
+		// ---> MUNCULKAN IKON JIKA SALAH SATU STANDBY
 		if(count >= maxTotal && (isManagerAtCounter || isAssistantAtCounter)){
 			interiorObj.status = 'ready';
 			$.interior[gameData.queueCounterNum+'icon_queue_'+maxTotal].visible = true;
@@ -1859,7 +1866,6 @@ function share(action){
 var leaderboardContainer; // Variabel global baru untuk menampung teks
 
 function displayLeaderboard() {
-    // Bersihkan container jika sudah ada sebelumnya
     if (leaderboardContainer != undefined) {
         resultContainer.removeChild(leaderboardContainer);
     }
@@ -1867,74 +1873,145 @@ function displayLeaderboard() {
     leaderboardContainer = new createjs.Container();
     var leaderboard = JSON.parse(localStorage.getItem('openRestaurantLeaderboard')) || [];
     
-    // --- 1. AREA PAPAN PERINGKAT (Default: Tersembunyi) ---
-    // [Logika panel tetap sama, diposisikan di kiri atas]
+    // ==========================================================
+    // 1. AREA PAPAN PERINGKAT (Panel Mewah di Tengah Layar)
+    // ==========================================================
     var panelContainer = new createjs.Container();
-    var startX = canvasW / 100 * 20; 
-    var startY = canvasH / 100 * 30; 
     
+    // Posisi tepat di tengah layar
+    var centerX = canvasW / 2;
+    var centerY = canvasH / 2;
+    panelContainer.x = centerX;
+    panelContainer.y = centerY;
+    
+    // Background Panel Mewah (Gelap dengan lis Emas)
     var bgPanel = new createjs.Shape();
-    bgPanel.graphics.beginFill("rgba(0, 0, 0, 0.8)").drawRoundRect(-150, -40, 300, 240, 15);
-    bgPanel.x = startX;
-    bgPanel.y = startY;
+    var pWidth = 460;
+    var pHeight = 380;
+    // Set ketebalan garis tepi 4px warna Emas (#FFD700)
+    bgPanel.graphics.setStrokeStyle(4).beginStroke("#FFD700")
+           .beginFill("rgba(15, 15, 15, 0.95)") // Warna latar hitam elegan (95% solid)
+           .drawRoundRect(-pWidth/2, -pHeight/2, pWidth, pHeight, 15);
     panelContainer.addChild(bgPanel);
     
-    var titleTxt = new createjs.Text("🏆 TOP 5 PERINGKAT", "26px robotobold_condensed", "#FFFFFF");
+    // Judul Panel
+    var titleTxt = new createjs.Text("♛ TOP 5 PERINGKAT ♛", "32px robotobold_condensed", "#FFD700");
     titleTxt.textAlign = "center";
-    titleTxt.x = startX;
-    titleTxt.y = startY;
+    titleTxt.y = -pHeight/2 + 25;
     panelContainer.addChild(titleTxt);
     
+    // Garis pemisah bawah judul
+    var line = new createjs.Shape();
+    line.graphics.setStrokeStyle(1).beginStroke("#FFD700").moveTo(-150, -pHeight/2 + 70).lineTo(150, -pHeight/2 + 70);
+    panelContainer.addChild(line);
+    
+    // Looping daftar peringkat (1 sampai 5)
     for (var i = 0; i < leaderboard.length; i++) {
-        // addCommas dipanggil dengan String cast agar aman
-        var rankStr = (i + 1) + ". " + leaderboard[i].name + " - Rp" + addCommas(String(leaderboard[i].score));
-        var rankTxt = new createjs.Text(rankStr, "22px robotobold_condensed", "#FFDD00");
-        rankTxt.textAlign = "center";
-        rankTxt.x = startX;
-        rankTxt.y = startY + 45 + (i * 30);
-        panelContainer.addChild(rankTxt);
+        var itemY = -pHeight/2 + 110 + (i * 45); // Jarak antar baris diperlebar
+        var rankColor = "#FFFFFF"; // Default warna putih
+        
+        // Penentuan Warna Medali
+        if (i == 0) rankColor = "#FFD400";      // Emas (Gold)
+        else if (i == 1) rankColor = "#D3D3D3"; // Perak (Silver)
+        else if (i == 2) rankColor = "#CD7F32"; // Perunggu (Bronze)
+        
+        // --- LOGIKA IKON MEDALI ---
+        if (i < 3) {
+            var medal = new createjs.Shape();
+            // Lingkaran utama medali
+            medal.graphics.beginFill(rankColor).drawCircle(0, 0, 14);
+            // Efek kilauan mengkilap (putih transparan) di sudut kiri atas medali
+            medal.graphics.beginFill("rgba(255,255,255,0.6)").drawCircle(-4, -4, 5);
+            
+            // Angka di dalam medali
+            var rankNum = new createjs.Text(String(i + 1), "14px Arial", "#000000");
+            rankNum.textAlign = "center";
+            rankNum.textBaseline = "middle";
+            
+            medal.x = rankNum.x = -170;
+            medal.y = rankNum.y = itemY;
+            
+            panelContainer.addChild(medal, rankNum);
+        } else {
+            // Untuk rank 4 dan 5, tanpa ikon medali
+            var rankNum = new createjs.Text(String(i + 1) + ".", "22px robotobold_condensed", rankColor);
+            rankNum.textAlign = "center";
+            rankNum.textBaseline = "middle";
+            rankNum.x = -170;
+            rankNum.y = itemY;
+            panelContainer.addChild(rankNum);
+        }
+        
+        // Teks Nama Pemain
+        var nameTxt = new createjs.Text(leaderboard[i].name, "24px robotobold_condensed", rankColor);
+        nameTxt.textAlign = "left";
+        nameTxt.textBaseline = "middle";
+        nameTxt.x = -135;
+        nameTxt.y = itemY;
+        panelContainer.addChild(nameTxt);
+        
+        // Teks Skor Pemain
+        var scoreTxt = new createjs.Text("Rp" + addCommas(String(leaderboard[i].score)), "24px robotobold_condensed", rankColor);
+        scoreTxt.textAlign = "right";
+        scoreTxt.textBaseline = "middle";
+        scoreTxt.x = 180;
+        scoreTxt.y = itemY;
+        panelContainer.addChild(scoreTxt);
     }
+    
+    // --- TOMBOL TUTUP PANEL ---
+    var closeBtn = new createjs.Container();
+    closeBtn.cursor = "pointer";
+    closeBtn.y = pHeight/2 - 40;
+    
+    var closeBg = new createjs.Shape();
+    closeBg.graphics.beginFill("#e74c3c").drawRoundRect(-60, -15, 120, 30, 8);
+    var closeTxt = new createjs.Text("TUTUP", "18px robotobold_condensed", "#FFFFFF");
+    closeTxt.textAlign = "center";
+    closeTxt.textBaseline = "middle";
+    
+    closeBtn.addChild(closeBg, closeTxt);
+    panelContainer.addChild(closeBtn);
+    
+    closeBtn.addEventListener("click", function(evt) {
+        panelContainer.visible = false; // Sembunyikan panel saat diklik
+        playSound('soundButton');
+    });
     
     panelContainer.visible = false; // Sembunyikan pada awalnya
     leaderboardContainer.addChild(panelContainer);
     
-    // --- 2. AREA TOMBOL ICON PERINGKAT (ANTI-GAGAL) ---
+    // ==========================================================
+    // 2. TOMBOL PEMICU DI POJOK KANAN ATAS
+    // ==========================================================
     var btnContainer = new createjs.Container();
     btnContainer.cursor = "pointer";
     
-    // A. Buat bantalan tombol berwarna agar pasti terlihat & bisa diklik
     var btnBg = new createjs.Shape();
-    btnBg.graphics.beginFill("#e74c3c").drawRoundRect(-25, -25, 50, 50, 10); // Kotak merah 50x50
+    btnBg.graphics.beginFill("#e74c3c").drawRoundRect(-25, -25, 50, 50, 10);
     btnContainer.addChild(btnBg);
     
-    // B. Masukkan gambar leaderboard.png
     var lbIcon = new createjs.Bitmap(loader.getResult('leaderboard')); 
-    
-    // Cek apakah gambar berhasil diload
     if (lbIcon.image) {
         lbIcon.regX = lbIcon.image.naturalWidth / 2;
         lbIcon.regY = lbIcon.image.naturalHeight / 2;
         btnContainer.addChild(lbIcon);
     } else {
-        // Fallback: Jika gambar PNG gagal, tampilkan emoji/teks cadangan
         var fallbackTxt = new createjs.Text("🏆", "25px Arial", "#FFFFFF");
         fallbackTxt.textAlign = "center";
         fallbackTxt.textBaseline = "middle";
         btnContainer.addChild(fallbackTxt);
     }
     
-    // C. Penempatan di sebelah tombol Settings
     var settingsButtonX = buttonSettings.x; 
     var settingsButtonY = buttonSettings.y; 
-    
-    btnContainer.x = settingsButtonX - 65; // Geser ke kiri dari settings
+    btnContainer.x = settingsButtonX - 65; 
     btnContainer.y = settingsButtonY;
     
     leaderboardContainer.addChild(btnContainer);
     
-    // --- 3. LOGIKA KLIK TOMBOL ---
     btnContainer.addEventListener("click", function(evt) {
-        panelContainer.visible = !panelContainer.visible;
+        panelContainer.visible = true; // Tampilkan panel ke tengah layar saat diklik
         playSound('soundButton'); 
     });
     
