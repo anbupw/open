@@ -1189,7 +1189,7 @@ function displayTotalQueue(con){
 	var interiorObj = $.interior[gameData.queueCounterNum];
 	if(con && interiorObj.people.length > 0){
 		var count = 0;
-		var maxTotal = Number(interiorObj.people[0]);
+		var maxTotal = Number(interiorObj.people[0]); // maxTotal = jumlah tamu dalam rombongan
 		for(var n=0; n<gameData.queueSlot_arr.length; n++){
 			var targetHuman = gameData.queueSlot_arr[n].stand;
 			if(targetHuman != null && targetHuman.tweenComplete){
@@ -1201,29 +1201,46 @@ function displayTotalQueue(con){
 		var isAssistantAtCounter = ($.peopleList['assistant'] && $.peopleList['assistant'].action == 'inCounter');
 		
 		if(count >= maxTotal){
-            // --- FITUR AUTO-SEATING ---
+            // --- FITUR AUTO-SEATING CERDAS ---
             if (isAssistantAtCounter) {
                 for (var i = 0; i < position_arr.length; i++) {
                     if ($.interior[i] && $.interior[i].type === 'table' && $.interior[i].status === 'none') {
-                        if (inviteQueue(i, maxTotal)) {
-                            interiorObj.people.splice(0, 1);
-                            interiorObj.status = 'none';
-                            
-                            var assistant = $.peopleList['assistant'];
-                            assistant.actionObj = $.interior[i];
-                            
-                            // ---> OBAT ANTI NYANGKUT: Paksa reset koordinat memori!
-                            assistant.exactR = null; 
-                            assistant.exactC = null;
-                            
-                            findPath('assistant', $.interior[i].r, $.interior[i].c, false, 'invite');
-                            return; 
+                        
+                        // ---> CEK KAPASITAS MEJA YANG TERSEDIA <---
+                        // Mengambil data batas kursi meja (biasanya tersimpan di max)
+                        var tableCapacity = $.interior[i].max || position_arr[i].max; 
+                        var isMatch = false;
+                        
+                        // LOGIKA 1: Jika tamu 1-2 orang, WAJIB cari meja kapasitas 2
+                        if (maxTotal <= 2 && tableCapacity == 2) {
+                            isMatch = true;
+                        } 
+                        // LOGIKA 2: Jika tamu 3-4 orang, WAJIB cari meja kapasitas 4
+                        else if (maxTotal > 2 && tableCapacity == 4) {
+                            isMatch = true;
+                        }
+                        
+                        // Jika kapasitas mejanya SANGAT COCOK dengan aturan di atas
+                        if (isMatch) {
+                            if (inviteQueue(i, maxTotal)) {
+                                interiorObj.people.splice(0, 1);
+                                interiorObj.status = 'none';
+                                
+                                var assistant = $.peopleList['assistant'];
+                                assistant.actionObj = $.interior[i];
+                                assistant.exactR = null; 
+                                assistant.exactC = null;
+                                
+                                findPath('assistant', $.interior[i].r, $.interior[i].c, false, 'invite');
+                                return; // Hentikan pencarian karena tamu sudah diantar
+                            }
                         }
                     }
                 }
             }
             
-            // --- JIKA SEMUA MEJA PENUH / ASISTEN SIBUK ---
+            // --- JIKA MEJA YANG "SESUAI KAPASITAS" SEDANG PENUH ---
+            // Tamu akan tetap menunggu di luar sampai meja yang ukurannya pas sudah kosong
             if (isManagerAtCounter || isAssistantAtCounter) {
                 interiorObj.status = 'ready';
                 $.interior[gameData.queueCounterNum+'icon_queue_'+maxTotal].visible = true;
