@@ -1057,24 +1057,23 @@ function updateHumanAction(num){
 				gameData.action = '';
 			}
 			targetHuman.action = 'inCounter';
+			// Panggil pengecekan antrean saat asisten tiba kembali di podium
 			displayTotalQueue(true);
 		break;
 		
 		case 'invite':
-            if (num == 'assistant') {
-                targetHuman.action = '';
-                var podium = $.interior[gameData.queueCounterNum];
-                
-                // --> TAMBAHKAN DUA BARIS INI (Sangat Penting)
-                targetHuman.exactR = podium.exactR;
-                targetHuman.exactC = podium.exactC;
-                
-                findPath('assistant', podium.r, podium.c, true, 'goCounter');
-            } else {
-                gameData.action = '';
-                targetHuman.action = '';
-            }
-        break;
+			if (num == 'assistant') {
+				targetHuman.action = '';
+				var podium = $.interior[gameData.queueCounterNum];
+				targetHuman.exactR = podium.exactR;
+				targetHuman.exactC = podium.exactC;
+				// Suruh asisten kembali ke podium
+				findPath('assistant', podium.r, podium.c, true, 'goCounter');
+			} else {
+				gameData.action = '';
+				targetHuman.action = '';
+			}
+		break;
 		
 		case 'order':
 			var orderTimer = gameSetting.orderTimer * gameData.dailySpeed;
@@ -1202,31 +1201,29 @@ function displayTotalQueue(con){
 		var isAssistantAtCounter = ($.peopleList['assistant'] && $.peopleList['assistant'].action == 'inCounter');
 		
 		if(count >= maxTotal){
-            // --- 1. FITUR AUTO-SEATING (ASISTEN MENGANTAR OTOMATIS) ---
+            // --- FITUR AUTO-SEATING ---
             if (isAssistantAtCounter) {
-                // Loop untuk mencari meja kosong
                 for (var i = 0; i < position_arr.length; i++) {
                     if ($.interior[i] && $.interior[i].type === 'table' && $.interior[i].status === 'none') {
-                        // Coba reservasi meja untuk tamu ini
                         if (inviteQueue(i, maxTotal)) {
                             interiorObj.people.splice(0, 1);
                             interiorObj.status = 'none';
                             
                             var assistant = $.peopleList['assistant'];
                             assistant.actionObj = $.interior[i];
-                            assistant.exactR = $.interior[i].exactR;
-                            assistant.exactC = $.interior[i].exactC;
                             
-                            // Asisten langsung jalan mengantar tamu
+                            // ---> OBAT ANTI NYANGKUT: Paksa reset koordinat memori!
+                            assistant.exactR = null; 
+                            assistant.exactC = null;
+                            
                             findPath('assistant', $.interior[i].r, $.interior[i].c, false, 'invite');
-                            return; // Misi sukses, hentikan fungsi
+                            return; 
                         }
                     }
                 }
             }
             
-            // --- 2. JIKA SEMUA MEJA PENUH ---
-            // Tampilkan ikon "Siap" agar asisten/manager tahu ada tamu menunggu
+            // --- JIKA SEMUA MEJA PENUH / ASISTEN SIBUK ---
             if (isManagerAtCounter || isAssistantAtCounter) {
                 interiorObj.status = 'ready';
                 $.interior[gameData.queueCounterNum+'icon_queue_'+maxTotal].visible = true;
