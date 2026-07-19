@@ -125,7 +125,12 @@ var level_setting = {dailyPeopleTimer:3, //daily increase (human enter restauran
 					dayTimer:100000, //daily timer
 					scoreTarget:[1000,5000,8000,16000,23000,28000,35000,42000,49000,60000,68000,74000,80000,86000,91000,99000,106000,112000,120000,126000,130000,137000,145000,155000,165000,170000,180000,195000,210000,250000], //daily score target
 					queueTotal_arr:[2,2,1,4,2,1,2,2,2,4,2,4,1,4]}; //total queue array list
-	
+
+// --- SISTEM TOKO & UPGRADE ---
+var playerMoney = Number(localStorage.getItem('openRestaurantMoney')) || 0;
+var upgManager = Number(localStorage.getItem('upgManager')) || 0;
+var upgAssistant = Number(localStorage.getItem('upgAssistant')) || 0;
+var shopContainer;
 
 //Social share, [SCORE] will replace with game score
 var shareEnable = true; //toggle share
@@ -999,7 +1004,22 @@ function moveHuman(num){
 		updateHumanPos(targetHuman);
 		
 		$.peopleList[num].pathNum++;
+		
+        var speedMultiplier = 1;
+        if (num == 'manager') {
+            // Setiap level mengurangi waktu tempuh 15% (Level 3 = 45% lebih cepat)
+            speedMultiplier = 1 - (upgManager * 0.15); 
+        } else if (num == 'assistant') {
+            speedMultiplier = 1 - (upgAssistant * 0.15);
+        }
+        
+        // Ambil kecepatan dasar bawaan game
 		var moveSpeed = num == 'manager' ? (gameSetting.moveSpeed * gameData.dailySpeedManager) : gameSetting.moveSpeed;
+        
+        // Kalikan dengan diskon waktu dari upgrade kita!
+        moveSpeed = moveSpeed * speedMultiplier;
+        // ==========================================================
+
 		TweenMax.to(targetHuman, moveSpeed, {x:targetHuman.newX, y:targetHuman.newY+2, overwrite:true, onUpdate:updateHumanMove, onUpdateParams:[targetHuman], onComplete:moveHuman, onCompleteParams:[num], ease:Linear.easeNone});
 	}else{
 		updateHumanAction(num);
@@ -1793,7 +1813,14 @@ function buildResultScore(){
 	thisDay.x = canvasW/100*42.5;
 	thisDay.y = canvasH/100*54;
 	scoreContainer.addChild(thisDay);
+	
+	// Mengubah skor yang didapat menjadi uang belanja di toko
+	playerMoney += Math.floor(tweenData.score); 
+	localStorage.setItem('openRestaurantMoney', playerMoney);
+	
+	// Memunculkan Papan Peringkat dan tombol Toko
 	displayLeaderboard();
+	displayShop();
 }
 /*!
  * 
@@ -2066,4 +2093,146 @@ function displayLeaderboard() {
     });
     
     resultContainer.addChild(leaderboardContainer);
+}
+
+function displayShop() {
+    if (shopContainer != undefined) {
+        resultContainer.removeChild(shopContainer);
+    }
+    
+    shopContainer = new createjs.Container();
+    var panelContainer = new createjs.Container();
+    
+    var centerX = canvasW / 2;
+    var centerY = canvasH / 2;
+    panelContainer.x = centerX;
+    panelContainer.y = centerY;
+    
+    // Background Panel Toko (Gelap dengan lis Biru Neon)
+    var bgPanel = new createjs.Shape();
+    bgPanel.graphics.setStrokeStyle(4).beginStroke("#3498db")
+           .beginFill("rgba(15, 15, 15, 0.95)")
+           .drawRoundRect(-230, -170, 460, 340, 15);
+    panelContainer.addChild(bgPanel);
+    
+    // Judul Panel
+    var titleTxt = new createjs.Text("🛒 TOKO UPGRADE", "32px robotobold_condensed", "#3498db");
+    titleTxt.textAlign = "center";
+    titleTxt.y = -140;
+    panelContainer.addChild(titleTxt);
+    
+    // Tampilan Uang Pemain
+    var moneyTxt = new createjs.Text("Saldo Anda: Rp" + addCommas(String(playerMoney)), "22px robotobold_condensed", "#2ecc71");
+    moneyTxt.textAlign = "center";
+    moneyTxt.y = -90;
+    panelContainer.addChild(moneyTxt);
+    
+    // Fungsi Pembuat Item Upgrade
+    function createShopItem(name, type, yPos, basePrice) {
+        var currentLevel = (type === 'manager') ? upgManager : upgAssistant;
+        var maxLevel = 3; // Batas level maksimal adalah 3
+        var cost = basePrice + (currentLevel * 500); // Harga naik 500 tiap level
+        
+        // Teks Nama Barang
+        var itemTxt = new createjs.Text(name + " (Lv " + currentLevel + "/" + maxLevel + ")", "20px robotobold_condensed", "#FFFFFF");
+        itemTxt.textAlign = "left";
+        itemTxt.textBaseline = "middle";
+        itemTxt.x = -190;
+        itemTxt.y = yPos;
+        panelContainer.addChild(itemTxt);
+        
+        // Tombol Beli
+        var btn = new createjs.Container();
+        btn.cursor = "pointer";
+        btn.x = 130;
+        btn.y = yPos;
+        
+        var isMax = currentLevel >= maxLevel;
+        var btnColor = isMax ? "#7f8c8d" : "#27ae60"; // Abu-abu jika max, hijau jika bisa dibeli
+        
+        var btnBg = new createjs.Shape();
+        btnBg.graphics.beginFill(btnColor).drawRoundRect(-50, -15, 100, 30, 5);
+        
+        var btnTxt = new createjs.Text(isMax ? "MAX" : "Rp" + addCommas(String(cost)), "18px robotobold_condensed", "#FFFFFF");
+        btnTxt.textAlign = "center";
+        btnTxt.textBaseline = "middle";
+        
+        btn.addChild(btnBg, btnTxt);
+        panelContainer.addChild(btn);
+        
+        // Logika Klik Beli
+        btn.addEventListener("click", function() {
+            if (currentLevel >= maxLevel) return; // Abaikan jika sudah Max
+            
+            if (playerMoney >= cost) {
+                playerMoney -= cost; // Kurangi uang
+                currentLevel++;
+                
+                // Simpan data
+                if (type === 'manager') {
+                    upgManager = currentLevel;
+                    localStorage.setItem('upgManager', upgManager);
+                } else {
+                    upgAssistant = currentLevel;
+                    localStorage.setItem('upgAssistant', upgAssistant);
+                }
+                localStorage.setItem('openRestaurantMoney', playerMoney);
+                
+                playSound('soundButton'); 
+                displayShop(); // Refresh tampilan UI langsung
+            } else {
+                playSound('soundError'); // Bunyi error jika uang tidak cukup
+            }
+        });
+    }
+    
+    // Mendaftarkan 2 Item Jualan Kita
+    createShopItem("👟 Sepatu Roda Manager", "manager", -30, 1000);
+    createShopItem("📋 Training Asisten", "assistant", 30, 1500);
+    
+    // Tombol Tutup
+    var closeBtn = new createjs.Container();
+    closeBtn.cursor = "pointer";
+    closeBtn.y = 110;
+    var closeBg = new createjs.Shape();
+    closeBg.graphics.beginFill("#e74c3c").drawRoundRect(-60, -15, 120, 30, 8);
+    var closeTxt = new createjs.Text("TUTUP", "18px robotobold_condensed", "#FFFFFF");
+    closeTxt.textAlign = "center";
+    closeTxt.textBaseline = "middle";
+    closeBtn.addChild(closeBg, closeTxt);
+    panelContainer.addChild(closeBtn);
+    
+    closeBtn.addEventListener("click", function() {
+        panelContainer.visible = false;
+        playSound('soundButton');
+    });
+    
+    panelContainer.visible = false;
+    shopContainer.addChild(panelContainer);
+    
+    // --- TOMBOL PEMICU DI LAYAR (SEBELAH KIRI LEADERBOARD) ---
+    var btnTrigger = new createjs.Container();
+    btnTrigger.cursor = "pointer";
+    
+    var btnTriggerBg = new createjs.Shape();
+    btnTriggerBg.graphics.setStrokeStyle(2).beginStroke("#FFFFFF").beginFill("#3498db").drawRoundRect(-22, -22, 44, 44, 10);
+    btnTrigger.addChild(btnTriggerBg);
+    
+    var shopIconTxt = new createjs.Text("🛒", "22px Arial", "#FFFFFF");
+    shopIconTxt.textAlign = "center";
+    shopIconTxt.textBaseline = "middle";
+    btnTrigger.addChild(shopIconTxt);
+    
+    // Penempatan: Digeser lagi ke kiri dari posisi Leaderboard (-116 pixel)
+    btnTrigger.x = buttonSettings.x - 116; 
+    btnTrigger.y = buttonSettings.y;
+    
+    shopContainer.addChild(btnTrigger);
+    
+    btnTrigger.addEventListener("click", function() {
+        panelContainer.visible = true;
+        playSound('soundButton');
+    });
+    
+    resultContainer.addChild(shopContainer);
 }
