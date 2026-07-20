@@ -130,6 +130,7 @@ var level_setting = {dailyPeopleTimer:3, //daily increase (human enter restauran
 var playerMoney = Number(localStorage.getItem('openRestaurantMoney')) || 0;
 var upgManager = Number(localStorage.getItem('upgManager')) || 0;
 var upgAssistant = Number(localStorage.getItem('upgAssistant')) || 0;
+var upgIncome = Number(localStorage.getItem('upgIncome')) || 0; // ---> TAMBAHAN BARU
 var shopContainer;
 
 //Social share, [SCORE] will replace with game score
@@ -1825,13 +1826,24 @@ function buildResultScore(){
 	thisDay.y = canvasH/100*54;
 	scoreContainer.addChild(thisDay);
 	
-	// Mengubah skor yang didapat menjadi uang belanja di toko
-	playerMoney += Math.floor(tweenData.score); 
+	// ==========================================================
+	// --- TAMBAHAN LANGKAH 2: SIMPAN UANG PEMAIN (REVISI EKONOMI) ---
+	// ==========================================================
+	var baseMoneyEarned = Math.floor(tweenData.score / 100);
+    
+    // --> LOGIKA BARU: BUKU RESEP PREMIUM <--
+    // Pastikan variabel upgIncome terbaca aman
+    var safeUpgIncome = (typeof upgIncome !== 'undefined') ? upgIncome : 0;
+    // Tambah 20% ekstra uang per level
+    var bonusMultiplier = 1 + (safeUpgIncome * 0.20); 
+    
+    var finalMoneyEarned = Math.floor(baseMoneyEarned * bonusMultiplier);
+	playerMoney += finalMoneyEarned; 
 	localStorage.setItem('openRestaurantMoney', playerMoney);
 	
-	// Memunculkan Papan Peringkat dan tombol Toko
+	// Memunculkan Papan Peringkat & Toko
 	displayLeaderboard();
-	displayShop();
+	displayShop(); 
 }
 /*!
  * 
@@ -2119,50 +2131,50 @@ function displayShop() {
     panelContainer.x = centerX;
     panelContainer.y = centerY;
     
-    // Background Panel Toko (Gelap dengan lis Biru Neon)
+    // Background Panel Toko (Dipertinggi jadi 420 agar muat 3 item)
     var bgPanel = new createjs.Shape();
     bgPanel.graphics.setStrokeStyle(4).beginStroke("#3498db")
            .beginFill("rgba(15, 15, 15, 0.95)")
-           .drawRoundRect(-230, -170, 460, 340, 15);
+           .drawRoundRect(-240, -210, 480, 420, 15);
     panelContainer.addChild(bgPanel);
     
-    // Judul Panel
     var titleTxt = new createjs.Text("🛒 TOKO UPGRADE", "32px robotobold_condensed", "#3498db");
     titleTxt.textAlign = "center";
-    titleTxt.y = -140;
+    titleTxt.y = -180;
     panelContainer.addChild(titleTxt);
     
-    // Tampilan Uang Pemain
     var moneyTxt = new createjs.Text("Saldo Anda: Rp" + addCommas(String(playerMoney)), "22px robotobold_condensed", "#2ecc71");
     moneyTxt.textAlign = "center";
-    moneyTxt.y = -90;
+    moneyTxt.y = -130;
     panelContainer.addChild(moneyTxt);
     
-    // Fungsi Pembuat Item Upgrade
+    // Fungsi Pembuat Item Upgrade (Diperbarui untuk mendukung banyak item)
     function createShopItem(name, type, yPos, basePrice) {
-        var currentLevel = (type === 'manager') ? upgManager : upgAssistant;
-        var maxLevel = 3; // Batas level maksimal adalah 3
-        var cost = basePrice + (currentLevel * 500); // Harga naik 500 tiap level
+        var currentLevel = 0;
+        if (type === 'manager') currentLevel = upgManager;
+        else if (type === 'assistant') currentLevel = upgAssistant;
+        else if (type === 'income') currentLevel = upgIncome;
         
-        // Teks Nama Barang
+        var maxLevel = 3; 
+        var cost = basePrice + (currentLevel * 750); // Kenaikan harga dibuat sedikit lebih mahal
+        
         var itemTxt = new createjs.Text(name + " (Lv " + currentLevel + "/" + maxLevel + ")", "20px robotobold_condensed", "#FFFFFF");
         itemTxt.textAlign = "left";
         itemTxt.textBaseline = "middle";
-        itemTxt.x = -190;
+        itemTxt.x = -200;
         itemTxt.y = yPos;
         panelContainer.addChild(itemTxt);
         
-        // Tombol Beli
         var btn = new createjs.Container();
         btn.cursor = "pointer";
-        btn.x = 130;
+        btn.x = 140;
         btn.y = yPos;
         
         var isMax = currentLevel >= maxLevel;
-        var btnColor = isMax ? "#7f8c8d" : "#27ae60"; // Abu-abu jika max, hijau jika bisa dibeli
+        var btnColor = isMax ? "#7f8c8d" : "#27ae60"; 
         
         var btnBg = new createjs.Shape();
-        btnBg.graphics.beginFill(btnColor).drawRoundRect(-50, -15, 100, 30, 5);
+        btnBg.graphics.beginFill(btnColor).drawRoundRect(-55, -18, 110, 36, 5);
         
         var btnTxt = new createjs.Text(isMax ? "MAX" : "Rp" + addCommas(String(cost)), "18px robotobold_condensed", "#FFFFFF");
         btnTxt.textAlign = "center";
@@ -2171,40 +2183,42 @@ function displayShop() {
         btn.addChild(btnBg, btnTxt);
         panelContainer.addChild(btn);
         
-        // Logika Klik Beli
         btn.addEventListener("click", function() {
-            if (currentLevel >= maxLevel) return; // Abaikan jika sudah Max
+            if (currentLevel >= maxLevel) return; 
             
             if (playerMoney >= cost) {
-                playerMoney -= cost; // Kurangi uang
+                playerMoney -= cost; 
                 currentLevel++;
                 
-                // Simpan data
+                // Simpan data sesuai tipe item
                 if (type === 'manager') {
                     upgManager = currentLevel;
                     localStorage.setItem('upgManager', upgManager);
-                } else {
+                } else if (type === 'assistant') {
                     upgAssistant = currentLevel;
                     localStorage.setItem('upgAssistant', upgAssistant);
+                } else if (type === 'income') {
+                    upgIncome = currentLevel;
+                    localStorage.setItem('upgIncome', upgIncome);
                 }
-                localStorage.setItem('openRestaurantMoney', playerMoney);
                 
+                localStorage.setItem('openRestaurantMoney', playerMoney);
                 playSound('soundButton'); 
-                displayShop(); // Refresh tampilan UI langsung
+                displayShop(); 
             } else {
-                playSound('soundError'); // Bunyi error jika uang tidak cukup
+                playSound('soundError'); 
             }
         });
     }
     
-    // Mendaftarkan 2 Item Jualan Kita
-    createShopItem("👟 Sepatu Roda Manager", "manager", -30, 1000);
-    createShopItem("📋 Training Asisten", "assistant", 30, 1500);
+    // Mendaftarkan 3 Item Jualan (Posisi Y disesuaikan agar rapi)
+    createShopItem("👟 Sepatu Roda Manager", "manager", -60, 1000);
+    createShopItem("📋 Training Asisten", "assistant", 0, 1500);
+    createShopItem("📖 Buku Resep Premium", "income", 60, 2000);
     
-    // Tombol Tutup
     var closeBtn = new createjs.Container();
     closeBtn.cursor = "pointer";
-    closeBtn.y = 110;
+    closeBtn.y = 150;
     var closeBg = new createjs.Shape();
     closeBg.graphics.beginFill("#e74c3c").drawRoundRect(-60, -15, 120, 30, 8);
     var closeTxt = new createjs.Text("TUTUP", "18px robotobold_condensed", "#FFFFFF");
@@ -2221,23 +2235,18 @@ function displayShop() {
     panelContainer.visible = false;
     shopContainer.addChild(panelContainer);
     
-    // --- TOMBOL PEMICU DI LAYAR (SEBELAH KIRI LEADERBOARD) ---
     var btnTrigger = new createjs.Container();
     btnTrigger.cursor = "pointer";
-    
     var btnTriggerBg = new createjs.Shape();
     btnTriggerBg.graphics.setStrokeStyle(2).beginStroke("#FFFFFF").beginFill("#3498db").drawRoundRect(-22, -22, 44, 44, 10);
     btnTrigger.addChild(btnTriggerBg);
-    
     var shopIconTxt = new createjs.Text("🛒", "22px Arial", "#FFFFFF");
     shopIconTxt.textAlign = "center";
     shopIconTxt.textBaseline = "middle";
     btnTrigger.addChild(shopIconTxt);
     
-    // Penempatan: Digeser lagi ke kiri dari posisi Leaderboard (-116 pixel)
     btnTrigger.x = buttonSettings.x - 116; 
     btnTrigger.y = buttonSettings.y;
-    
     shopContainer.addChild(btnTrigger);
     
     btnTrigger.addEventListener("click", function() {
