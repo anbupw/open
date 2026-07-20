@@ -245,7 +245,8 @@ function goPage(page){
 			resultContainer.visible=false;
 			targetContainer = mainContainer;
 			animateButton(buttonBegin, true, true);
-			displayShop(mainContainer);
+			displayShop();
+			displayLeaderboard();
 		break;
 		
 		case 'game':
@@ -1843,8 +1844,8 @@ function buildResultScore(){
 	localStorage.setItem('openRestaurantMoney', playerMoney);
 	
 	// Memunculkan Papan Peringkat & Toko
+	displayShop();
 	displayLeaderboard();
-	displayShop(resultContainer);
 }
 /*!
  * 
@@ -1953,8 +1954,16 @@ function share(action){
 var leaderboardContainer; // Variabel global baru untuk menampung teks
 
 function displayLeaderboard() {
-    if (leaderboardContainer != undefined) {
-        resultContainer.removeChild(leaderboardContainer);
+    // ==========================================================
+    // 0. CEK KESIAPAN TOMBOL PENGATURAN (ANTI-ERROR)
+    // ==========================================================
+    if (typeof buttonSettings === 'undefined' || !buttonSettings.parent) {
+        setTimeout(function() { displayLeaderboard(); }, 100);
+        return;
+    }
+
+    if (typeof leaderboardContainer !== 'undefined' && leaderboardContainer.parent) {
+        leaderboardContainer.parent.removeChild(leaderboardContainer);
     }
     
     leaderboardContainer = new createjs.Container();
@@ -1994,9 +2003,9 @@ function displayLeaderboard() {
         var itemY = -pHeight/2 + 110 + (i * 45); 
         var rankColor = "#FFFFFF"; 
         
-        if (i == 0) rankColor = "#FFD700";      // Emas
-        else if (i == 1) rankColor = "#E0E0E0"; // Perak 
-        else if (i == 2) rankColor = "#CD7F32"; // Perunggu
+        if (i == 0) rankColor = "#FFD700";       // Emas
+        else if (i == 1) rankColor = "#E0E0E0";  // Perak 
+        else if (i == 2) rankColor = "#CD7F32";  // Perunggu
         
         // --- LOGIKA IKON PIALA (TROPHY) UNTUK RANK 1, 2, 3 ---
         if (i < 3) {
@@ -2017,14 +2026,14 @@ function displayLeaderboard() {
             trophy.graphics.beginFill("rgba(255,255,255,0.4)").drawRoundRect(-9, -12, 4, 10, 1);
             
             // Angka di dalam mangkok piala
-            var rankNum = new createjs.Text(String(i + 1), "14px Arial", "#000000"); // Hitam agar kontras
+            var rankNum = new createjs.Text(String(i + 1), "14px Arial", "#000000"); 
             rankNum.textAlign = "center";
             rankNum.textBaseline = "middle";
             
             trophy.x = -170;
             trophy.y = itemY;
             rankNum.x = -170;
-            rankNum.y = itemY - 5; // Digeser sedikit ke atas agar pas di tengah mangkok
+            rankNum.y = itemY - 5; 
             
             panelContainer.addChild(trophy, rankNum);
         } else {
@@ -2077,50 +2086,65 @@ function displayLeaderboard() {
     leaderboardContainer.addChild(panelContainer);
     
     // ==========================================================
-    // 2. TOMBOL PEMICU DI POJOK KANAN ATAS (DISESUAIKAN)
+    // 2. TOMBOL PEMICU DI POJOK KANAN ATAS (MAGNET PERMANEN)
     // ==========================================================
     var btnContainer = new createjs.Container();
     btnContainer.cursor = "pointer";
     
     var btnBg = new createjs.Shape();
-    // Warna dan ukuran disamakan persis dengan tombol pengaturan (Garis tepi putih, warna salmon, ukuran 44x44)
     btnBg.graphics.setStrokeStyle(2).beginStroke("#FFFFFF")
          .beginFill("#F1654C").drawRoundRect(-22, -22, 44, 44, 10);
     btnContainer.addChild(btnBg);
     
-    var lbIcon = new createjs.Bitmap(loader.getResult('leaderboard')); 
-    if (lbIcon.image) {
-        lbIcon.regX = lbIcon.image.naturalWidth / 2;
-        lbIcon.regY = lbIcon.image.naturalHeight / 2;
-        // Skalakan ikon leaderboard agar muat sempurna di dalam tombol yang baru
-        lbIcon.scaleX = lbIcon.scaleY = 0.75; 
-        btnContainer.addChild(lbIcon);
-    } else {
+    // Menggunakan try-catch agar tidak error jika loader belum selesai
+    try {
+        var lbIcon = new createjs.Bitmap(loader.getResult('leaderboard')); 
+        if (lbIcon && lbIcon.image) {
+            lbIcon.regX = lbIcon.image.naturalWidth / 2;
+            lbIcon.regY = lbIcon.image.naturalHeight / 2;
+            lbIcon.scaleX = lbIcon.scaleY = 0.75; 
+            btnContainer.addChild(lbIcon);
+        } else {
+            throw "Ikon tidak ditemukan";
+        }
+    } catch (e) {
         var fallbackTxt = new createjs.Text("🏆", "22px Arial", "#FFFFFF");
         fallbackTxt.textAlign = "center";
         fallbackTxt.textBaseline = "middle";
         btnContainer.addChild(fallbackTxt);
     }
     
-    var settingsButtonX = buttonSettings.x; 
-    var settingsButtonY = buttonSettings.y; 
-    
-    // Jarak disesuaikan agar posisinya sejajar dan rapi
-    btnContainer.x = settingsButtonX - 58; 
-    btnContainer.y = settingsButtonY;
-    
     leaderboardContainer.addChild(btnContainer);
+    
+    // ---> JURUS MAGNET PERMANEN <---
+    btnContainer.on("tick", function() {
+        if (typeof buttonSettings !== 'undefined') {
+            // Posisi 110 px di kiri tombol pengaturan (sebelah kiri tombol toko yang berjarak 55 px)
+            btnContainer.x = buttonSettings.x - 110; 
+            btnContainer.y = buttonSettings.y;
+            btnContainer.visible = buttonSettings.visible;
+        }
+    });
     
     btnContainer.addEventListener("click", function(evt) {
         panelContainer.visible = true; 
         playSound('soundButton'); 
     });
     
-    resultContainer.addChild(leaderboardContainer);
+    // ---> PASANG KE PARENT PERMANEN <---
+    buttonSettings.parent.addChild(leaderboardContainer);
 }
 
-function displayShop(targetUI) {
-    // 1. Hapus dari layar sebelumnya agar tidak error/menumpuk
+// Kita hapus parameter targetUI karena sekarang posisinya PERMANEN mengikuti tombol pengaturan
+function displayShop(isPanelOpen) {
+    // 1. Pastikan tombol pengaturan bawaan game sudah siap
+    if (typeof buttonSettings === 'undefined' || !buttonSettings.parent) {
+        // Jika belum siap (saat loading awal), tunggu 100ms lalu coba pasang lagi
+        setTimeout(function() { displayShop(isPanelOpen); }, 100);
+        return;
+    }
+
+    // 2. Hapus container lama agar tidak terjadi penumpukan elemen saat refresh belanja
     if (shopContainer != undefined && shopContainer.parent) {
         shopContainer.parent.removeChild(shopContainer);
     }
@@ -2205,8 +2229,8 @@ function displayShop(targetUI) {
                 localStorage.setItem('openRestaurantMoney', playerMoney);
                 playSound('soundButton'); 
                 
-                // Refresh tampilan dengan memanggil parameter yang sama
-                displayShop(targetUI); 
+                // Refresh belanjaan & kunci panel agar tetap terbuka
+                displayShop(true); 
             } else {
                 playSound('soundError'); 
             }
@@ -2233,9 +2257,15 @@ function displayShop(targetUI) {
         playSound('soundButton');
     });
     
-    panelContainer.visible = false;
+    if (isPanelOpen === true) {
+        panelContainer.visible = true; 
+    } else {
+        panelContainer.visible = false; 
+    }
+    
     shopContainer.addChild(panelContainer);
     
+    // --- MEMBUAT TOMBOL PEMBUKA TOKO ---
     var btnTrigger = new createjs.Container();
     btnTrigger.cursor = "pointer";
     var btnTriggerBg = new createjs.Shape();
@@ -2245,29 +2275,28 @@ function displayShop(targetUI) {
     shopIconTxt.textAlign = "center";
     shopIconTxt.textBaseline = "middle";
     btnTrigger.addChild(shopIconTxt);
-    
-    // ==========================================================
-    // ---> LOGIKA PENEMPATAN TOMBOL OTOMATIS <---
-    // ==========================================================
-    if (targetUI === resultContainer && typeof buttonSettings !== 'undefined' && buttonSettings.parent) {
-        // Jika di layar skor, letakkan di samping tombol settings
-        btnTrigger.x = buttonSettings.x - 116; 
-        btnTrigger.y = buttonSettings.y;
-    } else {
-        // Jika di Menu Utama, letakkan di pojok KANAN ATAS
-        btnTrigger.x = canvasW - 50; 
-        btnTrigger.y = 50;
-    }
-    
     shopContainer.addChild(btnTrigger);
+    
+    // ==========================================================
+    // ---> JURUS MAGNET PERMANEN (ANTI RESIZE OVERWRITE) <---
+    // ==========================================================
+    // Setiap frame diperbarui, tombol Toko akan mengunci posisinya 
+    // tepat sejauh 55 pixel di sebelah kiri tombol pengaturan merah.
+    btnTrigger.on("tick", function() {
+        if (typeof buttonSettings !== 'undefined') {
+            btnTrigger.x = buttonSettings.x - 55; 
+            btnTrigger.y = buttonSettings.y;
+            
+            // Mengikuti visibilitas tombol pengaturan bawaan game otomatis
+            btnTrigger.visible = buttonSettings.visible;
+        }
+    });
     
     btnTrigger.addEventListener("click", function() {
         panelContainer.visible = true;
         playSound('soundButton');
     });
     
-    // ==========================================================
-    // ---> PASANG KE LAYAR YANG DIPILIH <---
-    // ==========================================================
-    targetUI.addChild(shopContainer);
+    // Masukkan ke parent yang sama dengan tombol pengaturan secara PERMANEN
+    buttonSettings.parent.addChild(shopContainer);
 }
