@@ -2118,9 +2118,10 @@ function displayLeaderboard() {
     resultContainer.addChild(leaderboardContainer);
 }
 
-function displayShop() {
-    if (shopContainer != undefined) {
-        resultContainer.removeChild(shopContainer);
+function displayShop(targetUI) {
+    // 1. Hapus dari layar sebelumnya agar tidak error/menumpuk
+    if (shopContainer != undefined && shopContainer.parent) {
+        shopContainer.parent.removeChild(shopContainer);
     }
     
     shopContainer = new createjs.Container();
@@ -2131,7 +2132,7 @@ function displayShop() {
     panelContainer.x = centerX;
     panelContainer.y = centerY;
     
-    // Background Panel Toko (Dipertinggi jadi 420 agar muat 3 item)
+    // Background Panel Toko
     var bgPanel = new createjs.Shape();
     bgPanel.graphics.setStrokeStyle(4).beginStroke("#3498db")
            .beginFill("rgba(15, 15, 15, 0.95)")
@@ -2148,7 +2149,6 @@ function displayShop() {
     moneyTxt.y = -130;
     panelContainer.addChild(moneyTxt);
     
-    // Fungsi Pembuat Item Upgrade (Diperbarui untuk mendukung banyak item)
     function createShopItem(name, type, yPos, basePrice) {
         var currentLevel = 0;
         if (type === 'manager') currentLevel = upgManager;
@@ -2156,7 +2156,7 @@ function displayShop() {
         else if (type === 'income') currentLevel = upgIncome;
         
         var maxLevel = 3; 
-        var cost = basePrice + (currentLevel * 750); // Kenaikan harga dibuat sedikit lebih mahal
+        var cost = basePrice + (currentLevel * 750); 
         
         var itemTxt = new createjs.Text(name + " (Lv " + currentLevel + "/" + maxLevel + ")", "20px robotobold_condensed", "#FFFFFF");
         itemTxt.textAlign = "left";
@@ -2190,7 +2190,6 @@ function displayShop() {
                 playerMoney -= cost; 
                 currentLevel++;
                 
-                // Simpan data sesuai tipe item
                 if (type === 'manager') {
                     upgManager = currentLevel;
                     localStorage.setItem('upgManager', upgManager);
@@ -2204,14 +2203,15 @@ function displayShop() {
                 
                 localStorage.setItem('openRestaurantMoney', playerMoney);
                 playSound('soundButton'); 
-                displayShop(); 
+                
+                // Refresh tampilan dengan memanggil parameter yang sama
+                displayShop(targetUI); 
             } else {
                 playSound('soundError'); 
             }
         });
     }
     
-    // Mendaftarkan 3 Item Jualan (Posisi Y disesuaikan agar rapi)
     createShopItem("👟 Sepatu Roda Manager", "manager", -60, 1000);
     createShopItem("📋 Training Asisten", "assistant", 0, 1500);
     createShopItem("📖 Buku Resep Premium", "income", 60, 2000);
@@ -2245,8 +2245,19 @@ function displayShop() {
     shopIconTxt.textBaseline = "middle";
     btnTrigger.addChild(shopIconTxt);
     
-    btnTrigger.x = buttonSettings.x - 116; 
-    btnTrigger.y = buttonSettings.y;
+    // ==========================================================
+    // ---> LOGIKA PENEMPATAN TOMBOL OTOMATIS <---
+    // ==========================================================
+    if (targetUI === resultContainer && typeof buttonSettings !== 'undefined' && buttonSettings.parent) {
+        // Jika di layar skor, letakkan di samping tombol settings
+        btnTrigger.x = buttonSettings.x - 116; 
+        btnTrigger.y = buttonSettings.y;
+    } else {
+        // Jika di Menu Utama, letakkan di pojok KANAN ATAS
+        btnTrigger.x = canvasW - 50; 
+        btnTrigger.y = 50;
+    }
+    
     shopContainer.addChild(btnTrigger);
     
     btnTrigger.addEventListener("click", function() {
@@ -2254,5 +2265,8 @@ function displayShop() {
         playSound('soundButton');
     });
     
-    resultContainer.addChild(shopContainer);
+    // ==========================================================
+    // ---> PASANG KE LAYAR YANG DIPILIH <---
+    // ==========================================================
+    targetUI.addChild(shopContainer);
 }
