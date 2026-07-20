@@ -245,6 +245,7 @@ function goPage(page){
 			resultContainer.visible=false;
 			targetContainer = mainContainer;
 			animateButton(buttonBegin, true, true);
+			displayShop(mainContainer);
 		break;
 		
 		case 'game':
@@ -1843,7 +1844,7 @@ function buildResultScore(){
 	
 	// Memunculkan Papan Peringkat & Toko
 	displayLeaderboard();
-	displayShop(); 
+	displayShop(resultContainer);
 }
 /*!
  * 
