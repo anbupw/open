@@ -2247,24 +2247,16 @@ function displayShop(targetUI) {
     btnTrigger.addChild(shopIconTxt);
     
     // ==========================================================
-    // ---> LOGIKA PENEMPATAN TOMBOL OTOMATIS <---
+    // ---> LOGIKA PENEMPATAN TOMBOL (VERSI MUTLAK & AMAN) <---
     // ==========================================================
-    if (typeof buttonSettings !== 'undefined') {
-        // Kita jadikan tombol pengaturan (merah) sebagai patokan/jangkar utama
-        btnTrigger.y = buttonSettings.y; // Ketinggiannya selalu sejajar
-        
-        if (targetUI === resultContainer) {
-            // Di layar skor, kita geser agak jauh ke kiri (-116) agar tidak menabrak tombol Papan Peringkat
-            btnTrigger.x = buttonSettings.x - 116; 
-        } else {
-            // Di menu utama, kita letakkan tepat di sebelah kiri tombol pengaturan
-            btnTrigger.x = buttonSettings.x - 65; 
-        }
-    } else {
-        // Rencana cadangan jika tombol pengaturan tidak ditemukan
-        btnTrigger.x = canvasW - 120; 
-        btnTrigger.y = 50;
-    }
+    // Kita gunakan jarak 200 pixel dari kanan agar aman dari 
+    // Tombol Pengaturan DAN Tombol Leaderboard.
+    
+    var jarakDariAtas = 45; 
+    var jarakDariKanan = 200; // Ruang ekstra lega agar muat 3 tombol berjejer
+    
+    btnTrigger.x = canvasW - jarakDariKanan; 
+    btnTrigger.y = jarakDariAtas;
     
     shopContainer.addChild(btnTrigger);
     
