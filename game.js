@@ -2119,8 +2119,8 @@ function displayLeaderboard() {
     resultContainer.addChild(leaderboardContainer);
 }
 
-function displayShop(targetUI) {
-    // 1. Hapus dari layar sebelumnya agar tidak error/menumpuk
+// Tambahkan parameter 'isPanelOpen' untuk mengingat status toko
+function displayShop(targetUI, isPanelOpen) {
     if (shopContainer != undefined && shopContainer.parent) {
         shopContainer.parent.removeChild(shopContainer);
     }
@@ -2133,7 +2133,6 @@ function displayShop(targetUI) {
     panelContainer.x = centerX;
     panelContainer.y = centerY;
     
-    // Background Panel Toko
     var bgPanel = new createjs.Shape();
     bgPanel.graphics.setStrokeStyle(4).beginStroke("#3498db")
            .beginFill("rgba(15, 15, 15, 0.95)")
@@ -2205,8 +2204,8 @@ function displayShop(targetUI) {
                 localStorage.setItem('openRestaurantMoney', playerMoney);
                 playSound('soundButton'); 
                 
-                // Refresh tampilan dengan memanggil parameter yang sama
-                displayShop(targetUI); 
+                // ---> PERBAIKAN: Kirim 'true' agar toko tetap terbuka setelah refresh <---
+                displayShop(targetUI, true); 
             } else {
                 playSound('soundError'); 
             }
@@ -2233,7 +2232,13 @@ function displayShop(targetUI) {
         playSound('soundButton');
     });
     
-    panelContainer.visible = false;
+    // ---> PERBAIKAN: Logika Cerdas untuk status panel <---
+    if (isPanelOpen === true) {
+        panelContainer.visible = true; // Biarkan terbuka jika habis beli barang
+    } else {
+        panelContainer.visible = false; // Tutup secara default saat baru pindah layar
+    }
+    
     shopContainer.addChild(panelContainer);
     
     var btnTrigger = new createjs.Container();
@@ -2246,14 +2251,8 @@ function displayShop(targetUI) {
     shopIconTxt.textBaseline = "middle";
     btnTrigger.addChild(shopIconTxt);
     
-    // ==========================================================
-    // ---> LOGIKA PENEMPATAN TOMBOL (VERSI MUTLAK & AMAN) <---
-    // ==========================================================
-    // Kita gunakan jarak 200 pixel dari kanan agar aman dari 
-    // Tombol Pengaturan DAN Tombol Leaderboard.
-    
     var jarakDariAtas = 45; 
-    var jarakDariKanan = 200; // Ruang ekstra lega agar muat 3 tombol berjejer
+    var jarakDariKanan = 200; 
     
     btnTrigger.x = canvasW - jarakDariKanan; 
     btnTrigger.y = jarakDariAtas;
@@ -2265,8 +2264,5 @@ function displayShop(targetUI) {
         playSound('soundButton');
     });
     
-    // ==========================================================
-    // ---> PASANG KE LAYAR YANG DIPILIH <---
-    // ==========================================================
     targetUI.addChild(shopContainer);
 }
